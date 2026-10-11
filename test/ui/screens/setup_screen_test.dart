@@ -34,7 +34,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.secret, '12345678');
     expect(repo.type, UnlockType.pin);
-    expect(find.text('Vault unlocked'), findsOneWidget);
+    expect(find.text('Save to vault'), findsOneWidget);
   });
 
   testWidgets('PIN rules: too short or too long is refused', (tester) async {

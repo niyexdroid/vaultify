@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'ui/providers.dart';
 import 'ui/screens/damaged_screen.dart';
 import 'ui/screens/setup_screen.dart';
 import 'ui/screens/unlock_screen.dart';
 import 'ui/session.dart';
+import 'ui/shell/desktop_shell.dart';
+import 'ui/shell/mobile_shell.dart';
 import 'ui/theme.dart';
 
 class VaultifyApp extends StatelessWidget {
@@ -44,38 +47,16 @@ class LockGate extends ConsumerWidget {
   }
 }
 
-/// Unlocked home (Milestone 3 placeholder): title bar with the Lock button.
-/// Milestone 4 replaces the body with the Generator and the shells.
+/// Unlocked home: desktop shell (tabs) on Windows and macOS, mobile shell
+/// (bottom bar) on Android and iOS.
 class UnlockedHome extends ConsumerWidget {
   const UnlockedHome({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = context.colors;
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Icon(Icons.shield_outlined, color: c.primary),
-            const SizedBox(width: Space.x1),
-            const Text('Vaultify'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Lock',
-            onPressed: () => ref.read(sessionProvider.notifier).lock(),
-            icon: const Icon(Icons.lock_outline),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Text(
-          'Vault unlocked',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ),
-    );
+    return ref.watch(mobileLayoutProvider)
+        ? const MobileShell()
+        : const DesktopShell();
   }
 }
 

@@ -29,13 +29,13 @@ void main() {
   test('pool estimate for pasted passwords counts each set used', () {
     expect(estimatePoolSize('abc'), 26);
     expect(estimatePoolSize('aB3'), 62);
-    expect(estimatePoolSize('aB3!'), 62 + 27);
+    expect(estimatePoolSize('aB3!'), 62 + 6);
     expect(estimatePoolSize('aé€'), 26 + 2);
     expect(estimatePoolSize(''), 0);
   });
 
   test('default 16-character password is very strong', () {
-    // 16 × log2(89) ≈ 103.6 bits.
+    // 16 × log2(68) ≈ 97.4 bits.
     expect(Strength.fromBits(passwordBits('aB3!aB3!aB3!aB3!')),
         Strength.veryStrong);
     expect(Strength.fromBits(passwordBits('password')), Strength.weak);

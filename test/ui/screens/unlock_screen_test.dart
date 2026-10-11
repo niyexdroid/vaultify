@@ -24,7 +24,7 @@ void main() {
     expect(find.text('Unlock Vaultify'), findsOneWidget);
 
     await tryPin(tester, pin);
-    expect(find.text('Vault unlocked'), findsOneWidget);
+    expect(find.text('Save to vault'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Lock'));
     await tester.pumpAndSettle();
@@ -36,7 +36,7 @@ void main() {
       (tester) async {
     await pumpVaultify(tester, repo: FakeVaultRepository(secret: pin));
     await tryPin(tester, '11111111');
-    expect(find.text('Vault unlocked'), findsNothing);
+    expect(find.text('Save to vault'), findsNothing);
     expect(find.text('Wrong PIN. 4 tries left before a wait.'), findsOneWidget);
 
     await tryPin(tester, '22222222');
@@ -73,7 +73,7 @@ void main() {
     expect(find.textContaining('Too many wrong tries'), findsNothing);
 
     await tryPin(tester, pin);
-    expect(find.text('Vault unlocked'), findsOneWidget);
+    expect(find.text('Save to vault'), findsOneWidget);
   });
 
   testWidgets('a running wait is shown after a restart', (tester) async {
@@ -101,7 +101,7 @@ void main() {
     expect(find.text('Wrong password. 4 tries left before a wait.'),
         findsOneWidget);
     await tryPin(tester, 'long enough pw');
-    expect(find.text('Vault unlocked'), findsOneWidget);
+    expect(find.text('Save to vault'), findsOneWidget);
   });
 
   testWidgets('mobile: unlock with the number pad', (tester) async {
@@ -118,6 +118,6 @@ void main() {
     await tapDigits(tester, '8');
     await tester.tap(unlockButton());
     await tester.pumpAndSettle();
-    expect(find.text('Vault unlocked'), findsOneWidget);
+    expect(find.text('Save to vault'), findsOneWidget);
   });
 }

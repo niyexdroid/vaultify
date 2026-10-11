@@ -5,7 +5,8 @@ abstract final class CharSets {
   static const String uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   static const String lowercase = 'abcdefghijklmnopqrstuvwxyz';
   static const String numbers = '0123456789';
-  static const String symbols = '!@#\$%^&*()-_=+[]{};:,.<>?/~';
+  // Kept to six symbols that most sites accept in passwords.
+  static const String symbols = '!@#\$&%';
 }
 
 /// Password generator: thrown when no character type is selected (the UI

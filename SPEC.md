@@ -128,7 +128,7 @@ Three areas, Generator, Saved and Options, behave the same everywhere; only touc
 | Uppercase | A–Z | On |
 | Lowercase | a–z | On |
 | Numbers | 0–9 | On |
-| Symbols | `! @ # $ % ^ & * ( ) - _ = + [ ] { } ; : , . < > ? / ~` | On |
+| Symbols | `! @ # $ & %` | On |
 | Custom | Typed characters, up to 256, duplicates ignored | Off |
 
 - Length: slider 4–64 with − and + buttons beside it; typing in the number allows up to 128. Default 16.

@@ -7,6 +7,7 @@ import 'package:vaultify/app.dart';
 import 'package:vaultify/core/crypto/cipher.dart';
 import 'package:vaultify/core/settings/settings.dart';
 import 'package:vaultify/core/settings/settings_store.dart';
+import 'package:vaultify/core/vault/entry.dart';
 import 'package:vaultify/core/vault/vault_file.dart';
 import 'package:vaultify/core/vault/vault_repository.dart';
 import 'package:vaultify/ui/providers.dart';
@@ -49,6 +50,38 @@ class FakeVaultRepository extends Fake implements VaultRepository {
 
   @override
   void lock() => unlocked = false;
+
+  // Saved entries: kept in a plain list; survives lock/unlock like a file.
+  final List<Entry> saved = [];
+
+  @override
+  List<Entry> get entries => unlocked ? List.unmodifiable(saved) : const [];
+
+  @override
+  Future<void> add(Entry entry) async => saved.add(entry);
+
+  bool _same(String a, String b) =>
+      a.trim().toLowerCase() == b.trim().toLowerCase();
+
+  @override
+  bool nameExists(String name) => saved.any((e) => _same(e.name, name));
+
+  @override
+  String nextFreeName(String name) {
+    if (!nameExists(name)) return name.trim();
+    for (var n = 2;; n++) {
+      final candidate = '${name.trim()} ($n)';
+      if (!nameExists(candidate)) return candidate;
+    }
+  }
+
+  @override
+  Future<void> replaceByName(Entry entry) async {
+    final i = saved.indexWhere((e) => _same(e.name, entry.name));
+    if (i < 0) return add(entry);
+    saved[i] = saved[i].copyWith(
+        username: entry.username, password: entry.password);
+  }
 }
 
 /// Widget test settings: kept in memory instead of `settings.json`.
