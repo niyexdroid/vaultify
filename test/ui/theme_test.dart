@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vaultify/app.dart';
 import 'package:vaultify/ui/theme.dart';
+
+import 'fakes.dart';
 
 void main() {
   test('light tokens match SPEC.md', () {
@@ -39,7 +40,7 @@ void main() {
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-      await tester.pumpWidget(const VaultifyApp());
+      await pumpVaultify(tester, repo: FakeVaultRepository());
 
       final context = tester.element(find.byType(Scaffold));
       final expected =
@@ -47,7 +48,7 @@ void main() {
       expect(Theme.of(context).brightness, brightness);
       expect(context.colors.background, expected.background);
       expect(Theme.of(context).scaffoldBackgroundColor, expected.background);
-      expect(find.text('Vaultify'), findsOneWidget);
+      expect(find.text('Create your PIN'), findsOneWidget);
     });
   }
 }

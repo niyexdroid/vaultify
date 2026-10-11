@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'ui/screens/damaged_screen.dart';
+import 'ui/screens/setup_screen.dart';
+import 'ui/screens/unlock_screen.dart';
+import 'ui/session.dart';
 import 'ui/theme.dart';
 
 class VaultifyApp extends StatelessWidget {
@@ -13,105 +18,84 @@ class VaultifyApp extends StatelessWidget {
       theme: VaultifyTheme.light,
       darkTheme: VaultifyTheme.dark,
       themeMode: ThemeMode.system,
-      home: const _ThemePreview(),
+      home: const LockGate(),
     );
   }
 }
 
-/// Milestone 1 placeholder: shows the theme tokens so light and dark mode can
-/// be checked. Replaced by setup/unlock and the shells in later milestones.
-class _ThemePreview extends StatelessWidget {
-  const _ThemePreview();
+/// Lock gate: shows setup, unlock, the damaged-vault screen or the app,
+/// depending on the session. Locking always lands back here on unlock.
+class LockGate extends ConsumerWidget {
+  const LockGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final text = Theme.of(context).textTheme;
-    const swatches = <String>[
-      'primary', 'primarySoft', 'surface', 'border', 'text', 'textSecondary',
-      'weak', 'fair', 'strong',
-    ];
-    final values = <Color>[
-      c.primary, c.primarySoft, c.surface, c.border, c.text, c.textSecondary,
-      c.weak, c.fair, c.strong,
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider);
+    return switch (session) {
+      AsyncData(:final value) => switch (value.phase) {
+          Phase.setup => const SetupScreen(),
+          Phase.locked => UnlockScreen(type: value.unlockType!),
+          Phase.damaged => DamagedScreen(hasBackup: value.hasBackup),
+          Phase.unlocked => const UnlockedHome(),
+        },
+      AsyncError() => const _StartupError(),
+      _ => const Scaffold(body: SizedBox.shrink()),
+    };
+  }
+}
 
+/// Unlocked home (Milestone 3 placeholder): title bar with the Lock button.
+/// Milestone 4 replaces the body with the Generator and the shells.
+class UnlockedHome extends ConsumerWidget {
+  const UnlockedHome({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = context.colors;
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: ListView(
-              padding: const EdgeInsets.all(Space.x3),
-              children: [
-                Icon(Icons.shield_outlined, size: 40, color: c.primary),
-                const SizedBox(height: Space.x2),
-                Text('Vaultify', style: text.titleLarge, textAlign: TextAlign.center),
-                const SizedBox(height: Space.x1),
-                Text('Theme preview', style: text.bodySmall, textAlign: TextAlign.center),
-                const SizedBox(height: Space.x3),
-                Container(
-                  padding: const EdgeInsets.all(Space.x2),
-                  decoration: BoxDecoration(
-                    color: c.surface,
-                    border: Border.all(color: c.border),
-                    borderRadius: BorderRadius.circular(Radii.control),
-                  ),
-                  child: Text(
-                    'k7#Rm2!vQp9@Lx4z',
-                    style: passwordTextStyle(c, mobile: false),
-                  ),
-                ),
-                const SizedBox(height: Space.x2),
-                Wrap(
-                  spacing: Space.x1,
-                  runSpacing: Space.x1,
-                  children: [
-                    for (var i = 0; i < swatches.length; i++)
-                      _Swatch(label: swatches[i], color: values[i]),
-                  ],
-                ),
-                const SizedBox(height: Space.x3),
-                FilledButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Generate'),
-                ),
-                const SizedBox(height: Space.x1),
-                OutlinedButton(onPressed: () {}, child: const Text('Save to vault')),
-              ],
-            ),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Icon(Icons.shield_outlined, color: c.primary),
+            const SizedBox(width: Space.x1),
+            const Text('Vaultify'),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Lock',
+            onPressed: () => ref.read(sessionProvider.notifier).lock(),
+            icon: const Icon(Icons.lock_outline),
           ),
+        ],
+      ),
+      body: Center(
+        child: Text(
+          'Vault unlocked',
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ),
     );
   }
 }
 
-class _Swatch extends StatelessWidget {
-  const _Swatch({required this.label, required this.color});
-
-  final String label;
-  final Color color;
+/// Lock gate: shown if the app folder can't be read at start-up.
+class _StartupError extends StatelessWidget {
+  const _StartupError();
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            border: Border.all(color: c.border),
-            borderRadius: BorderRadius.circular(4),
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(Space.x3),
+          child: Text(
+            "Vaultify couldn't open its data folder.",
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
-        const SizedBox(width: Space.half),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
+      ),
     );
   }
 }
