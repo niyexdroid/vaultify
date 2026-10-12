@@ -213,6 +213,6 @@ void main() {
     expect(find.byType(TabBar), findsNothing);
     await tester.tap(find.text('Saved'));
     await tester.pumpAndSettle();
-    expect(find.text('0 saved'), findsOneWidget);
+    expect(find.text('Save your first password'), findsOneWidget);
   });
 }

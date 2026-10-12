@@ -159,6 +159,15 @@ class SessionController extends AsyncNotifier<Session> {
     }
   }
 
+  /// Saved list sort: remembers A–Z or newest first in `settings.json`.
+  Future<void> setSortOrder(SortOrder order) async {
+    final session = _current;
+    if (session.settings.sortOrder == order) return;
+    final settings = session.settings.copyWith(sortOrder: order);
+    state = AsyncData(session.copyWith(settings: settings));
+    await ref.read(settingsStoreProvider).save(settings);
+  }
+
   /// Damaged vault: restores `vault.vfy.bak`, then re-checks the files.
   /// Throws [VaultFormatException] if the backup is damaged too.
   Future<void> restoreFromBackup() async {

@@ -60,6 +60,9 @@ class FakeVaultRepository extends Fake implements VaultRepository {
   @override
   Future<void> add(Entry entry) async => saved.add(entry);
 
+  @override
+  Future<void> delete(String id) async => saved.removeWhere((e) => e.id == id);
+
   bool _same(String a, String b) =>
       a.trim().toLowerCase() == b.trim().toLowerCase();
 

@@ -1,35 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'shell_parts.dart';
 
 /// Mobile shell (Android, iOS): title bar and a bottom navigation bar;
 /// content capped at 600 wide and centred on tablets.
-class MobileShell extends StatefulWidget {
+class MobileShell extends ConsumerWidget {
   const MobileShell({super.key});
 
   @override
-  State<MobileShell> createState() => _MobileShellState();
-}
-
-class _MobileShellState extends State<MobileShell> {
-  AppArea _area = AppArea.generator;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final area = ref.watch(currentAreaProvider);
     return Scaffold(
       appBar: const VaultifyTitleBar(),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
-            child: AreaStack(current: _area),
+            child: AreaStack(current: area),
           ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _area.index,
+        selectedIndex: area.index,
         onDestinationSelected: (i) =>
-            setState(() => _area = AppArea.values[i]),
+            ref.read(currentAreaProvider.notifier).show(AppArea.values[i]),
         destinations: [
           for (final a in AppArea.values)
             NavigationDestination(

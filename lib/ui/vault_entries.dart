@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/settings/settings.dart';
 import '../core/vault/entry.dart';
 import 'providers.dart';
 import 'session.dart';
@@ -53,4 +54,35 @@ class VaultEntries extends Notifier<List<Entry>> {
     ));
     state = repo.entries;
   }
+
+  /// Saved screen, Delete: removes the entry and saves immediately.
+  Future<void> delete(String id) async {
+    final repo = ref.read(vaultRepositoryProvider);
+    await repo.delete(id);
+    state = repo.entries;
+  }
+}
+
+/// Saved screen search and sort: entries whose name or username contains
+/// [query] (ignoring case), A–Z by name or newest saved first.
+List<Entry> searchAndSort(
+    List<Entry> entries, String query, SortOrder order) {
+  final q = query.trim().toLowerCase();
+  final found = [
+    for (final e in entries)
+      if (q.isEmpty ||
+          e.name.toLowerCase().contains(q) ||
+          e.username.toLowerCase().contains(q))
+        e,
+  ];
+  int byName(Entry a, Entry b) =>
+      a.name.toLowerCase().compareTo(b.name.toLowerCase());
+  found.sort(switch (order) {
+    SortOrder.nameAsc => byName,
+    SortOrder.newestFirst => (a, b) {
+        final c = b.updated.compareTo(a.updated);
+        return c != 0 ? c : byName(a, b);
+      },
+  });
+  return found;
 }

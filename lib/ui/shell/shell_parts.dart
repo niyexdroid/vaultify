@@ -19,6 +19,21 @@ enum AppArea {
   final IconData selectedIcon;
 }
 
+/// App areas: which area is showing. Shared so a screen can switch areas
+/// (the empty Saved screen opens the Generator); back to Generator on lock.
+final currentAreaProvider =
+    NotifierProvider<CurrentArea, AppArea>(CurrentArea.new);
+
+class CurrentArea extends Notifier<AppArea> {
+  @override
+  AppArea build() {
+    ref.watch(sessionProvider.select((s) => s.value?.phase));
+    return AppArea.generator;
+  }
+
+  void show(AppArea area) => state = area;
+}
+
 /// App areas: every area's screen kept alive in an IndexedStack, so
 /// switching tabs keeps the generated password and typed names.
 class AreaStack extends StatelessWidget {
