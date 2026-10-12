@@ -1,3 +1,4 @@
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vaultify/core/crypto/kdf.dart';
 
@@ -58,5 +59,15 @@ void main() {
     expect(() => KdfParams.fromJson({...json, 'iterations': 0}),
         throwsFormatException);
     expect(() => KdfParams.fromJson(null), throwsFormatException);
+  });
+
+  test('keysMatch: same key bytes match, different ones do not', () async {
+    final salt = List<int>.generate(16, (i) => i);
+    final a = await deriveKey('12345678', cheap(salt));
+    final b = await deriveKey('12345678', cheap(salt));
+    final c = await deriveKey('87654321', cheap(salt));
+    expect(await keysMatch(a, b), isTrue);
+    expect(await keysMatch(a, c), isFalse);
+    expect(await keysMatch(a, SecretKeyData(const [1, 2, 3])), isFalse);
   });
 }

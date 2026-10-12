@@ -6,6 +6,7 @@ import '../../core/generator/generator.dart';
 import '../../core/vault/entry.dart';
 import '../generator_controller.dart';
 import '../providers.dart';
+import '../session.dart';
 import '../theme.dart';
 import '../vault_entries.dart';
 import '../widgets/password_box.dart';
@@ -75,10 +76,11 @@ class _GeneratorScreenState extends ConsumerState<GeneratorScreen> {
     _setLength(typed ?? _options.length);
   }
 
-  // Copy password: plain copy for now; clipboard auto-clear is Milestone 6.
+  // Copy password: cleared after the Options time (clipboard clearing).
   Future<void> _copy() async {
     if (_password.text.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: _password.text));
+    await ref.read(clipboardGuardProvider).copyPassword(_password.text,
+        ref.read(sessionProvider).requireValue.settings.clipboardClearSeconds);
     _toast('Copied');
   }
 

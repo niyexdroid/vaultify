@@ -160,12 +160,59 @@ class SessionController extends AsyncNotifier<Session> {
   }
 
   /// Saved list sort: remembers A–Z or newest first in `settings.json`.
-  Future<void> setSortOrder(SortOrder order) async {
+  Future<void> setSortOrder(SortOrder order) =>
+      updateSettings((s) => s.copyWith(sortOrder: order));
+
+  /// Options: applies a settings change (auto-lock, clipboard time,
+  /// generator defaults...) and saves it to `settings.json`.
+  Future<void> updateSettings(Settings Function(Settings) change) async {
     final session = _current;
-    if (session.settings.sortOrder == order) return;
-    final settings = session.settings.copyWith(sortOrder: order);
+    final settings = change(session.settings);
     state = AsyncData(session.copyWith(settings: settings));
     await ref.read(settingsStoreProvider).save(settings);
+  }
+
+  /// Change PIN or password, step 1: checks the current secret. A wrong one
+  /// counts as a failed unlock (same 5-try limit and waits), and reaching a
+  /// wait locks the app, so Options can't be used to guess the PIN.
+  Future<UnlockOutcome> checkCurrentSecret(String secret) async {
+    final now = ref.read(clockProvider)();
+    final session = _current;
+    if (session.lockout.isLocked(now)) {
+      lock();
+      return UnlockOutcome.waiting;
+    }
+    // Same order as unlock: record the try before checking it.
+    final store = ref.read(settingsStoreProvider);
+    final failed = session.settings.copyWith(
+      lockout: session.lockout.recordFailure(now),
+    );
+    await store.save(failed);
+
+    if (await ref.read(vaultRepositoryProvider).checkSecret(secret)) {
+      final cleared = session.settings.copyWith(
+        lockout: session.lockout.recordSuccess(),
+      );
+      await store.save(cleared);
+      state = AsyncData(session.copyWith(settings: cleared));
+      return UnlockOutcome.success;
+    }
+    state = AsyncData(session.copyWith(settings: failed));
+    if (failed.lockout.isLocked(now)) {
+      lock();
+      return UnlockOutcome.waiting;
+    }
+    return UnlockOutcome.wrong;
+  }
+
+  /// Change PIN or password, last step: re-encrypts the vault with
+  /// [secret] (new salt) and remembers the unlock type.
+  Future<void> changeSecret(String secret, UnlockType type) async {
+    await ref.read(vaultRepositoryProvider).changeSecret(secret, type);
+    final session = _current;
+    final settings = session.settings.copyWith(unlockType: type);
+    await ref.read(settingsStoreProvider).save(settings);
+    state = AsyncData(session.copyWith(settings: settings, unlockType: type));
   }
 
   /// Damaged vault: restores `vault.vfy.bak`, then re-checks the files.

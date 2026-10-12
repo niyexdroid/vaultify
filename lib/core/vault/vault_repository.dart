@@ -160,6 +160,18 @@ class VaultRepository {
     ]);
   }
 
+  /// Change PIN or password: whether [secret] is the open vault's current
+  /// PIN or password (derives it with the vault's salt and compares keys).
+  Future<bool> checkSecret(String secret) async {
+    _requireUnlocked();
+    final candidate = await deriveKey(secret, _kdf!);
+    try {
+      return await keysMatch(candidate, _key!);
+    } finally {
+      _destroy(candidate);
+    }
+  }
+
   /// Change PIN or password: re-derives the key with a new salt and
   /// re-encrypts, so the old secret stops working.
   Future<void> changeSecret(String newSecret, UnlockType type) async {

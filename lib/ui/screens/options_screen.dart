@@ -1,19 +1,265 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/generator/generator.dart';
+import '../../core/settings/settings.dart';
+import '../../core/vault/vault_file.dart';
+import '../../platform/open_folder.dart';
+import '../app_info.dart';
+import '../generator_controller.dart';
+import '../providers.dart';
+import '../session.dart';
 import '../theme.dart';
+import 'change_secret_screen.dart';
 
-/// Options screen (stand-in until Milestone 6): the About line only.
-class OptionsScreen extends StatelessWidget {
+/// Options screen: unlock secret, auto-lock, clipboard clearing, generator
+/// defaults and About.
+class OptionsScreen extends ConsumerWidget {
   const OptionsScreen({super.key});
+
+  // Options: a change toast ("Auto-lock set to 15 min").
+  static void _toast(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // Change PIN or password: opens the change page; [newType] different from
+  // the current type switches between PIN and master password.
+  Future<void> _changeSecret(
+    BuildContext context,
+    UnlockType current,
+    UnlockType newType,
+  ) async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            ChangeSecretScreen(currentType: current, newType: newType),
+      ),
+    );
+    if (changed == true && context.mounted) {
+      _toast(context,
+          newType == UnlockType.pin ? 'PIN changed' : 'Password changed');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(sessionProvider).requireValue;
+    final settings = session.settings;
+    final type = session.unlockType ?? UnlockType.pin;
+    final mobile = ref.watch(mobileLayoutProvider);
+    final c = context.colors;
+    final text = Theme.of(context).textTheme;
+    final controller = ref.read(sessionProvider.notifier);
+    final otherType =
+        type == UnlockType.pin ? UnlockType.password : UnlockType.pin;
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: Space.x1),
+      children: [
+        // Options, unlock secret: change it, or switch PIN ↔ password.
+        const _Section('Unlock'),
+        ListTile(
+          leading: const Icon(Icons.password),
+          title: Text(type == UnlockType.pin ? 'Change PIN' : 'Change password'),
+          onTap: () => _changeSecret(context, type, type),
+        ),
+        ListTile(
+          leading: const Icon(Icons.swap_horiz),
+          title: Text(type == UnlockType.pin
+              ? 'Use a master password instead'
+              : 'Use a PIN instead'),
+          onTap: () => _changeSecret(context, type, otherType),
+        ),
+
+        // Options, auto-lock: idle time before locking.
+        const _Section('Protection'),
+        _ChoiceTile(
+          icon: Icons.lock_clock_outlined,
+          title: 'Auto-lock',
+          subtitle: 'Locks after this long without use',
+          value: settings.autoLockMinutes,
+          choices: Settings.autoLockChoices,
+          label: (m) => m == 0 ? 'Never' : '$m min',
+          onChanged: (m) =>
+              controller.updateSettings((s) => s.copyWith(autoLockMinutes: m)),
+        ),
+
+        // Options, clipboard clearing: time before a copied password is
+        // cleared. iOS can only clear while the app is open.
+        _ChoiceTile(
+          icon: Icons.content_paste_off_outlined,
+          title: 'Clear copied passwords',
+          subtitle: defaultTargetPlatform == TargetPlatform.iOS
+              ? 'On iPhone, clearing only happens while Vaultify is open'
+              : 'Only if the clipboard still holds the password',
+          value: settings.clipboardClearSeconds,
+          choices: Settings.clipboardClearChoices,
+          label: (s) => s == 0 ? 'Off' : '$s s',
+          onChanged: (s) => controller
+              .updateSettings((v) => v.copyWith(clipboardClearSeconds: s)),
+        ),
+
+        // Options, default generator settings: what the Generator starts
+        // with each time the app is unlocked.
+        const _Section('Generator defaults'),
+        ListTile(
+          leading: const Icon(Icons.tune),
+          title: Text(describeGeneratorOptions(settings.generator)),
+          subtitle: const Text('Used each time Vaultify is unlocked'),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Space.x2),
+          child: Wrap(
+            spacing: Space.x1,
+            runSpacing: Space.x1,
+            children: [
+              OutlinedButton(
+                onPressed: () async {
+                  final current = ref.read(generatorProvider).options;
+                  await controller.updateSettings(
+                      (s) => s.copyWith(generator: current));
+                  if (context.mounted) {
+                    _toast(context, 'Generator defaults saved');
+                  }
+                },
+                child: const Text('Use current generator settings'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await controller.updateSettings(
+                      (s) => s.copyWith(generator: const GeneratorOptions()));
+                  if (context.mounted) {
+                    _toast(context, 'Generator defaults reset');
+                  }
+                },
+                child: const Text('Reset'),
+              ),
+            ],
+          ),
+        ),
+
+        // About: version, this-device-only note, data folder (desktop).
+        const _Section('About'),
+        ListTile(
+          leading: Icon(Icons.shield_outlined, color: c.primary),
+          title: const Text('Vaultify $appVersion'),
+          subtitle: const Text(
+            'Your vault lives only on this device. Each device keeps its own '
+            'separate vault; nothing is synced or sent anywhere.',
+          ),
+        ),
+        if (!mobile) ...[
+          ListTile(
+            leading: const Icon(Icons.folder_outlined),
+            title: const Text('Data folder'),
+            subtitle: SelectableText(
+              ref.watch(appDirectoryProvider).path,
+              style: text.bodySmall,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                Space.x2, 0, Space.x2, Space.x2),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final ok =
+                      await openFolder(ref.read(appDirectoryProvider).path);
+                  if (!ok && context.mounted) {
+                    _toast(context, "Couldn't open the folder");
+                  }
+                },
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Open folder'),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Default generator settings: "Uppercase, lowercase, numbers, symbols ·
+/// 16 characters".
+String describeGeneratorOptions(GeneratorOptions o) {
+  final sets = [
+    if (o.uppercase) 'uppercase',
+    if (o.lowercase) 'lowercase',
+    if (o.numbers) 'numbers',
+    if (o.symbols) 'symbols',
+    if (o.custom) 'custom',
+  ];
+  final what = sets.isEmpty ? 'No character types' : sets.join(', ');
+  final sentence = what[0].toUpperCase() + what.substring(1);
+  return '$sentence · ${o.clampedLength} characters';
+}
+
+/// Options: section caption ("Unlock", "Protection", ...).
+class _Section extends StatelessWidget {
+  const _Section(this.label);
+
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(Space.x2),
-      children: [
-        Text('Your vault lives only on this device.',
-            style: Theme.of(context).textTheme.bodySmall),
-      ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          Space.x2, Space.x3, Space.x2, Space.half),
+      child: Text(
+        label,
+        style: Theme.of(context)
+            .textTheme
+            .bodySmall
+            ?.copyWith(color: context.colors.textSecondary),
+      ),
+    );
+  }
+}
+
+/// Options: a setting with a small drop-down of choices on the right.
+class _ChoiceTile extends StatelessWidget {
+  const _ChoiceTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.choices,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final int value;
+  final List<int> choices;
+  final String Function(int) label;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: DropdownButtonHideUnderline(
+        child: DropdownButton<int>(
+          value: value,
+          borderRadius: BorderRadius.circular(Radii.control),
+          items: [
+            for (final c in choices)
+              DropdownMenuItem(value: c, child: Text(label(c))),
+          ],
+          onChanged: (v) {
+            if (v != null && v != value) onChanged(v);
+          },
+        ),
+      ),
     );
   }
 }

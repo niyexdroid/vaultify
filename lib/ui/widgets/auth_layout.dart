@@ -10,15 +10,21 @@ class AuthLayout extends StatelessWidget {
     super.key,
     required this.heading,
     required this.children,
+    this.appBar,
   });
 
   final String heading;
   final List<Widget> children;
 
+  /// Change PIN or password: a bar with a back button (setup and unlock
+  /// have none).
+  final PreferredSizeWidget? appBar;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return Scaffold(
+      appBar: appBar,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

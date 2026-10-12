@@ -199,6 +199,21 @@ void main() {
     expect(after.entries.single.name, 'Gmail');
   });
 
+  test('checkSecret accepts the current PIN only, and follows a change',
+      () async {
+    final r = repo();
+    await r.create(pin, UnlockType.pin);
+    expect(await r.checkSecret(pin), isTrue);
+    expect(await r.checkSecret('87654321'), isFalse);
+
+    await r.changeSecret('11223344', UnlockType.pin);
+    expect(await r.checkSecret('11223344'), isTrue);
+    expect(await r.checkSecret(pin), isFalse);
+
+    r.lock();
+    await expectLater(r.checkSecret(pin), throwsStateError);
+  });
+
   test('setup rejects invalid secrets and never overwrites a vault', () async {
     await expectLater(
         repo().create('123', UnlockType.pin), throwsArgumentError);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'ui/auto_lock_scope.dart';
 import 'ui/providers.dart';
 import 'ui/screens/damaged_screen.dart';
 import 'ui/screens/setup_screen.dart';
@@ -33,13 +34,20 @@ class LockGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Lock: close any dialog, sheet or page (e.g. "Delete Gmail?" or
+    // Change PIN) left open over the app, so nothing shows over Unlock.
+    ref.listen(sessionProvider.select((s) => s.value?.phase), (prev, next) {
+      if (prev == Phase.unlocked && next != Phase.unlocked) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    });
     final session = ref.watch(sessionProvider);
     return switch (session) {
       AsyncData(:final value) => switch (value.phase) {
           Phase.setup => const SetupScreen(),
           Phase.locked => UnlockScreen(type: value.unlockType!),
           Phase.damaged => DamagedScreen(hasBackup: value.hasBackup),
-          Phase.unlocked => const UnlockedHome(),
+          Phase.unlocked => const AutoLockScope(child: UnlockedHome()),
         },
       AsyncError() => const _StartupError(),
       _ => const Scaffold(body: SizedBox.shrink()),

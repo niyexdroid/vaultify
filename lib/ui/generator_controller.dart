@@ -66,7 +66,7 @@ class GeneratorController extends Notifier<GeneratorState> {
     ));
   }
 
-  /// Generate button (and Ctrl/Cmd+G later): a new password with the
+  /// Generate button and Ctrl/Cmd+G: a new password with the
   /// current options.
   void generate() => state = _generate(state);
 

@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/security/clipboard_guard.dart';
 import '../core/settings/settings_store.dart';
 import '../core/vault/vault_repository.dart';
 import '../platform/window.dart';
@@ -28,3 +30,16 @@ final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 /// Mobile layout: number pad for PINs, bottom bar navigation. True on
 /// Android and iOS; tests override it to check both layouts.
 final mobileLayoutProvider = Provider<bool>((ref) => !isDesktop);
+
+/// Clipboard clearing: one guard for the whole app, so a countdown keeps
+/// running across tabs and after locking. Uses Flutter's Clipboard.
+final clipboardGuardProvider = Provider<ClipboardGuard>((ref) {
+  final guard = ClipboardGuard(
+    write: (text) => Clipboard.setData(ClipboardData(text: text)),
+    read: () async =>
+        (await Clipboard.getData(Clipboard.kTextPlain))?.text,
+    clock: ref.watch(clockProvider),
+  );
+  ref.onDispose(guard.dispose);
+  return guard;
+});

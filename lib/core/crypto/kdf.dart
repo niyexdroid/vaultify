@@ -87,3 +87,16 @@ Future<SecretKey> deriveKey(String secret, KdfParams params) async {
     input.destroy();
   }
 }
+
+/// Change PIN or password: whether two keys hold the same bytes. Compares
+/// every byte (no early exit) so timing doesn't reveal how much matched.
+Future<bool> keysMatch(SecretKey a, SecretKey b) async {
+  final x = await a.extractBytes();
+  final y = await b.extractBytes();
+  if (x.length != y.length) return false;
+  var diff = 0;
+  for (var i = 0; i < x.length; i++) {
+    diff |= x[i] ^ y[i];
+  }
+  return diff == 0;
+}

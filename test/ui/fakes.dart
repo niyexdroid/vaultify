@@ -51,6 +51,16 @@ class FakeVaultRepository extends Fake implements VaultRepository {
   @override
   void lock() => unlocked = false;
 
+  // Change PIN or password: plain comparisons instead of Argon2.
+  @override
+  Future<bool> checkSecret(String secret) async => secret == this.secret;
+
+  @override
+  Future<void> changeSecret(String newSecret, UnlockType type) async {
+    secret = newSecret;
+    this.type = type;
+  }
+
   // Saved entries: kept in a plain list; survives lock/unlock like a file.
   final List<Entry> saved = [];
 

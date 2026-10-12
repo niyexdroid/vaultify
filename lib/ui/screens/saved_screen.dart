@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/settings.dart';
@@ -12,6 +11,14 @@ import '../shell/shell_parts.dart';
 import '../theme.dart';
 import '../vault_entries.dart';
 import '../widgets/entry_row.dart';
+import '../widgets/status_line.dart';
+
+/// Search: the search field's focus, shared so Ctrl/Cmd+F can jump to it.
+final savedSearchFocusProvider = Provider<FocusNode>((ref) {
+  final node = FocusNode(debugLabel: 'Saved search');
+  ref.onDispose(node.dispose);
+  return node;
+});
 
 /// Saved screen: search, count and sort, then the saved rows with show,
 /// copy and delete. Desktop rows have icons; mobile rows open a sheet.
@@ -55,12 +62,19 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     });
   }
 
-  // Copy password / username: plain copy for now; clipboard auto-clear is
-  // Milestone 6.
-  Future<void> _copy(String value, String what) async {
-    if (value.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: value));
-    _toast('$what copied');
+  // Copy password: cleared after the Options time (clipboard clearing).
+  Future<void> _copyPassword(String password) async {
+    if (password.isEmpty) return;
+    await ref.read(clipboardGuardProvider).copyPassword(password,
+        ref.read(sessionProvider).requireValue.settings.clipboardClearSeconds);
+    _toast('Password copied');
+  }
+
+  // Copy username: not secret, so it stays on the clipboard.
+  Future<void> _copyUsername(String username) async {
+    if (username.isEmpty) return;
+    await ref.read(clipboardGuardProvider).copyText(username);
+    _toast('Username copied');
   }
 
   void _toast(String message) {
@@ -156,9 +170,9 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
       case _RowAction.show:
         _toggleShow(e);
       case _RowAction.copyPassword:
-        await _copy(e.password, 'Password');
+        await _copyPassword(e.password);
       case _RowAction.copyUsername:
-        await _copy(e.username, 'Username');
+        await _copyUsername(e.username);
       case _RowAction.delete:
         await _delete(e);
       case null:
@@ -192,6 +206,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               Space.x2, Space.x2, Space.x2, Space.x1),
           child: TextField(
             controller: _search,
+            focusNode: ref.watch(savedSearchFocusProvider),
             autocorrect: false,
             decoration: InputDecoration(
               hintText: 'Search',
@@ -261,18 +276,21 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                       mobile: mobile,
                       revealed: _revealed.containsKey(e.id),
                       onToggleShow: () => _toggleShow(e),
-                      onCopyPassword: () => _copy(e.password, 'Password'),
-                      onCopyUsername: () => _copy(e.username, 'Username'),
+                      onCopyPassword: () => _copyPassword(e.password),
+                      onCopyUsername: () => _copyUsername(e.username),
                       onDelete: () => _delete(e),
                       // Mobile: tap opens the actions sheet, long-press
                       // copies the password.
                       onTap: mobile ? () => _openSheet(e) : null,
                       onLongPress:
-                          mobile ? () => _copy(e.password, 'Password') : null,
+                          mobile ? () => _copyPassword(e.password) : null,
                     );
                   },
                 ),
         ),
+
+        // Status line: clipboard countdown and auto-lock time.
+        const StatusLine(),
       ],
     );
   }
