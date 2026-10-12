@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ui/auto_lock_scope.dart';
+import 'ui/biometric_offer.dart';
 import 'ui/providers.dart';
 import 'ui/screens/damaged_screen.dart';
 import 'ui/screens/setup_screen.dart';
@@ -47,7 +48,9 @@ class LockGate extends ConsumerWidget {
           Phase.setup => const SetupScreen(),
           Phase.locked => UnlockScreen(type: value.unlockType!),
           Phase.damaged => DamagedScreen(hasBackup: value.hasBackup),
-          Phase.unlocked => const AutoLockScope(child: UnlockedHome()),
+          Phase.unlocked => const AutoLockScope(
+              child: BiometricOffer(child: UnlockedHome()),
+            ),
         },
       AsyncError() => const _StartupError(),
       _ => const Scaffold(body: SizedBox.shrink()),

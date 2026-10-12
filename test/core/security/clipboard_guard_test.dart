@@ -74,6 +74,21 @@ void main() {
     expect(g.secondsLeft(), isNull);
     expect(clipboard, 'me@example.com');
   });
+
+  test('sensitive clipboard flag: passwords use writeSecret, usernames write',
+      () async {
+    final secret = <String>[];
+    final plain = <String>[];
+    final g = ClipboardGuard(
+      write: (text) async => plain.add(text),
+      writeSecret: (text) async => secret.add(text),
+      read: () async => null,
+    );
+    await g.copyPassword('s3cret', 0);
+    await g.copyText('me@example.com');
+    expect(secret, ['s3cret']);
+    expect(plain, ['me@example.com']);
+  });
 }
 
 /// Test timer: fired by hand instead of waiting.

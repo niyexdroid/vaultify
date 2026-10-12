@@ -99,6 +99,29 @@ class VaultRepository {
     }
   }
 
+  /// Biometric unlock: opens the vault with a key kept in secure storage
+  /// instead of deriving it from the PIN. Throws
+  /// [DecryptionFailedException] if the key no longer fits (e.g. the PIN
+  /// changed) and [VaultFormatException] if the file is damaged.
+  Future<void> unlockWithKey(List<int> keyBytes) async {
+    final file = VaultFile.decode(await _readVault(vaultFile));
+    final key = SecretKeyData(List<int>.of(keyBytes));
+    try {
+      final entries = decodePayload(await decrypt(file.sealed, key));
+      _setUnlocked(key, file.kdf, file.unlock, entries);
+    } catch (_) {
+      _destroy(key);
+      rethrow;
+    }
+  }
+
+  /// Biometric unlock: a copy of the open vault's key, to keep in secure
+  /// storage when fingerprint or face unlock is turned on.
+  Future<List<int>> exportKey() async {
+    _requireUnlocked();
+    return List<int>.of(await _key!.extractBytes());
+  }
+
   /// Lock: drops the key and decrypted entries from memory.
   void lock() {
     final key = _key;

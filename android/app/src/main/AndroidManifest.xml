@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Biometric unlock: fingerprint / face prompt (local_auth). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Offline app: no backups to Google Drive. Restoring a backup would also
+         break the biometric key, which can't leave this phone's Keystore. -->
     <application
         android:label="Vaultify"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

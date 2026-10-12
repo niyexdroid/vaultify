@@ -10,12 +10,19 @@ class ClipboardGuard {
   ClipboardGuard({
     required this.write,
     required this.read,
+    Future<void> Function(String text)? writeSecret,
     this.clock = DateTime.now,
     Timer Function(Duration, void Function())? startTimer,
-  }) : _startTimer = startTimer ?? Timer.new;
+  })  : writeSecret = writeSecret ?? write,
+        _startTimer = startTimer ?? Timer.new;
 
   /// Puts text on the clipboard.
   final Future<void> Function(String text) write;
+
+  /// Sensitive clipboard flag: puts a password on the clipboard marked as
+  /// sensitive where the platform supports it (Android 13+ then hides it
+  /// from the clipboard preview). Defaults to [write].
+  final Future<void> Function(String text) writeSecret;
 
   /// Reads the clipboard's text (null if none).
   final Future<String?> Function() read;
@@ -46,7 +53,7 @@ class ClipboardGuard {
   /// [clearAfterSeconds] (0 = never). Replaces any earlier countdown.
   Future<void> copyPassword(String password, int clearAfterSeconds) async {
     _cancel();
-    await write(password);
+    await writeSecret(password);
     if (clearAfterSeconds <= 0) return;
     final after = Duration(seconds: clearAfterSeconds);
     _pending = password;

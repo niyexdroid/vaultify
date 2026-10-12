@@ -15,6 +15,9 @@ class Settings {
     this.generator = const GeneratorOptions(),
     this.lockout = LockoutState.initial,
     this.sortOrder = SortOrder.nameAsc,
+    this.biometricEnabled = false,
+    this.biometricOffered = false,
+    this.biometricFailures = 0,
   });
 
   // Settings: the choices offered in Options. 0 means "never" / "off" /
@@ -46,6 +49,17 @@ class Settings {
   /// Saved list sort order.
   final SortOrder sortOrder;
 
+  /// Biometric unlock (mobile): fingerprint or face unlock is turned on.
+  final bool biometricEnabled;
+
+  /// Biometric unlock (mobile): the "Unlock with fingerprint or face?"
+  /// offer has been shown once, so it isn't asked again.
+  final bool biometricOffered;
+
+  /// Biometric unlock (mobile): failed scans since the PIN or password was
+  /// last typed; at 5 the PIN is required.
+  final int biometricFailures;
+
   Settings copyWith({
     UnlockType? unlockType,
     int? autoLockMinutes,
@@ -54,6 +68,9 @@ class Settings {
     GeneratorOptions? generator,
     LockoutState? lockout,
     SortOrder? sortOrder,
+    bool? biometricEnabled,
+    bool? biometricOffered,
+    int? biometricFailures,
   }) =>
       Settings(
         unlockType: unlockType ?? this.unlockType,
@@ -65,6 +82,9 @@ class Settings {
         generator: generator ?? this.generator,
         lockout: lockout ?? this.lockout,
         sortOrder: sortOrder ?? this.sortOrder,
+        biometricEnabled: biometricEnabled ?? this.biometricEnabled,
+        biometricOffered: biometricOffered ?? this.biometricOffered,
+        biometricFailures: biometricFailures ?? this.biometricFailures,
       );
 
   Map<String, Object?> toJson() => {
@@ -75,6 +95,9 @@ class Settings {
         'generator': generator.toJson(),
         'lockout': lockout.toJson(),
         'sortOrder': sortOrder.name,
+        'biometricEnabled': biometricEnabled,
+        'biometricOffered': biometricOffered,
+        'biometricFailures': biometricFailures,
       };
 
   /// Settings: reads `settings.json`, using the default for any field that
@@ -88,6 +111,7 @@ class Settings {
     }
 
     final sort = json['sortOrder'];
+    final failures = json['biometricFailures'];
     return Settings(
       unlockType: UnlockType.fromName(json['unlockType']),
       autoLockMinutes:
@@ -102,6 +126,9 @@ class Settings {
         (s) => s.name == sort,
         orElse: () => d.sortOrder,
       ),
+      biometricEnabled: json['biometricEnabled'] == true,
+      biometricOffered: json['biometricOffered'] == true,
+      biometricFailures: failures is int && failures > 0 ? failures : 0,
     );
   }
 }

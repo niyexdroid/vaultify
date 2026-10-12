@@ -10,6 +10,7 @@ import 'package:vaultify/core/settings/settings_store.dart';
 import 'package:vaultify/core/vault/entry.dart';
 import 'package:vaultify/core/vault/vault_file.dart';
 import 'package:vaultify/core/vault/vault_repository.dart';
+import 'package:vaultify/platform/biometrics.dart';
 import 'package:vaultify/ui/providers.dart';
 
 /// Widget test vault: in-memory stand-in for [VaultRepository], so screen
@@ -50,6 +51,26 @@ class FakeVaultRepository extends Fake implements VaultRepository {
 
   @override
   void lock() => unlocked = false;
+
+  // Biometric unlock: a stand-in key made from the secret, so changing the
+  // PIN makes an old key stop working, like the real vault.
+  List<int> get _key => fakeKeyFor(secret!);
+
+  @override
+  Future<List<int>> exportKey() async {
+    if (!unlocked) throw StateError('vault is locked');
+    return _key;
+  }
+
+  @override
+  Future<void> unlockWithKey(List<int> keyBytes) async {
+    if (!_sameBytes(keyBytes, _key)) throw const DecryptionFailedException();
+    unlocked = true;
+  }
+
+  static bool _sameBytes(List<int> a, List<int> b) =>
+      a.length == b.length &&
+      [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((x) => x);
 
   // Change PIN or password: plain comparisons instead of Argon2.
   @override
@@ -97,6 +118,10 @@ class FakeVaultRepository extends Fake implements VaultRepository {
   }
 }
 
+/// Biometric unlock tests: the key [FakeVaultRepository] uses for [secret].
+List<int> fakeKeyFor(String secret) =>
+    List.generate(32, (i) => secret.codeUnitAt(i % secret.length));
+
 /// Widget test settings: kept in memory instead of `settings.json`.
 class FakeSettingsStore extends Fake implements SettingsStore {
   Settings saved = const Settings();
@@ -108,6 +133,38 @@ class FakeSettingsStore extends Fake implements SettingsStore {
   Future<void> save(Settings settings) async => saved = settings;
 }
 
+/// Widget test biometrics: a fake fingerprint sensor and key slot. Each
+/// prompt returns the next queued result (success if none are queued).
+class FakeBiometrics implements Biometrics {
+  FakeBiometrics({this.available = true});
+
+  bool available;
+  String? record;
+  final List<BiometricResult> results = [];
+  int prompts = 0;
+
+  @override
+  Future<bool> isAvailable() async => available;
+
+  @override
+  Future<BiometricResult> authenticate(String reason) async {
+    prompts++;
+    return results.isEmpty ? BiometricResult.success : results.removeAt(0);
+  }
+
+  @override
+  Future<String?> readRecord() async => record;
+
+  @override
+  Future<bool> hasRecord() async => record != null;
+
+  @override
+  Future<void> writeRecord(String record) async => this.record = record;
+
+  @override
+  Future<void> deleteRecord() async => record = null;
+}
+
 /// Widget tests: pumps the whole app with fakes; [mobile] picks the layout.
 Future<void> pumpVaultify(
   WidgetTester tester, {
@@ -115,6 +172,7 @@ Future<void> pumpVaultify(
   FakeSettingsStore? store,
   bool mobile = false,
   DateTime Function()? clock,
+  Biometrics? biometrics,
 }) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [
@@ -123,6 +181,8 @@ Future<void> pumpVaultify(
       settingsStoreProvider.overrideWithValue(store ?? FakeSettingsStore()),
       mobileLayoutProvider.overrideWithValue(mobile),
       if (clock != null) clockProvider.overrideWithValue(clock),
+      if (biometrics != null)
+        biometricsProvider.overrideWithValue(biometrics),
     ],
     child: const VaultifyApp(),
   ));

@@ -214,6 +214,37 @@ void main() {
     await expectLater(r.checkSecret(pin), throwsStateError);
   });
 
+  test('biometric unlock: the exported key opens the vault without the PIN',
+      () async {
+    final r = repo();
+    await r.create(pin, UnlockType.pin);
+    await r.add(entry('Gmail'));
+    final key = await r.exportKey();
+    expect(key, hasLength(32));
+    r.lock();
+    await expectLater(r.exportKey(), throwsStateError);
+
+    final other = repo();
+    await other.unlockWithKey(key);
+    expect(other.isUnlocked, isTrue);
+    expect(other.entries.single.name, 'Gmail');
+    expect(other.unlockType, UnlockType.pin);
+  });
+
+  test('biometric unlock: a wrong or outdated key fails', () async {
+    final r = repo();
+    await r.create(pin, UnlockType.pin);
+    final oldKey = await r.exportKey();
+    await r.changeSecret('11223344', UnlockType.pin);
+    r.lock();
+
+    await expectLater(repo().unlockWithKey(oldKey),
+        throwsA(isA<DecryptionFailedException>()));
+    await expectLater(repo().unlockWithKey(List.filled(32, 7)),
+        throwsA(isA<DecryptionFailedException>()));
+    expect(r.isUnlocked, isFalse);
+  });
+
   test('setup rejects invalid secrets and never overwrites a vault', () async {
     await expectLater(
         repo().create('123', UnlockType.pin), throwsArgumentError);

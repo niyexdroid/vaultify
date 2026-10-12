@@ -7,14 +7,15 @@ import '../../core/settings/settings.dart';
 import '../../core/vault/vault_file.dart';
 import '../../platform/open_folder.dart';
 import '../app_info.dart';
+import '../biometric_offer.dart';
 import '../generator_controller.dart';
 import '../providers.dart';
 import '../session.dart';
 import '../theme.dart';
 import 'change_secret_screen.dart';
 
-/// Options screen: unlock secret, auto-lock, clipboard clearing, generator
-/// defaults and About.
+/// Options screen: unlock secret, biometric unlock and background lock
+/// (mobile), auto-lock, clipboard clearing, generator defaults and About.
 class OptionsScreen extends ConsumerWidget {
   const OptionsScreen({super.key});
 
@@ -73,6 +74,9 @@ class OptionsScreen extends ConsumerWidget {
               : 'Use a PIN instead'),
           onTap: () => _changeSecret(context, type, otherType),
         ),
+        // Options, biometric unlock (mobile): on/off. Greyed out when the
+        // phone has no fingerprint or face set up.
+        if (mobile) _BiometricTile(settings: settings, type: type),
 
         // Options, auto-lock: idle time before locking.
         const _Section('Protection'),
@@ -86,6 +90,20 @@ class OptionsScreen extends ConsumerWidget {
           onChanged: (m) =>
               controller.updateSettings((s) => s.copyWith(autoLockMinutes: m)),
         ),
+
+        // Options, background lock (mobile): how soon after leaving the
+        // app it locks.
+        if (mobile)
+          _ChoiceTile(
+            icon: Icons.phonelink_lock_outlined,
+            title: 'Lock in background',
+            subtitle: 'After you switch away from Vaultify',
+            value: settings.backgroundLockSeconds,
+            choices: Settings.backgroundLockChoices,
+            label: backgroundLockLabel,
+            onChanged: (s) => controller
+                .updateSettings((v) => v.copyWith(backgroundLockSeconds: s)),
+          ),
 
         // Options, clipboard clearing: time before a copied password is
         // cleared. iOS can only clear while the app is open.
@@ -197,6 +215,60 @@ String describeGeneratorOptions(GeneratorOptions o) {
   final what = sets.isEmpty ? 'No character types' : sets.join(', ');
   final sentence = what[0].toUpperCase() + what.substring(1);
   return '$sentence · ${o.clampedLength} characters';
+}
+
+/// Background lock: 0 → "Immediately", 30 → "30 s", 60 → "1 min".
+String backgroundLockLabel(int seconds) => switch (seconds) {
+      0 => 'Immediately',
+      60 => '1 min',
+      _ => '$seconds s',
+    };
+
+/// Options, biometric unlock (mobile): the on/off switch. Turning it on
+/// asks for a scan first; turning it off removes the stored key.
+class _BiometricTile extends ConsumerStatefulWidget {
+  const _BiometricTile({required this.settings, required this.type});
+
+  final Settings settings;
+  final UnlockType type;
+
+  @override
+  ConsumerState<_BiometricTile> createState() => _BiometricTileState();
+}
+
+class _BiometricTileState extends ConsumerState<_BiometricTile> {
+  bool _busy = false;
+
+  Future<void> _toggle(bool on) async {
+    setState(() => _busy = true);
+    final controller = ref.read(sessionProvider.notifier);
+    String? message;
+    if (on) {
+      message = biometricEnableMessage(
+          await controller.enableBiometrics(biometricEnableReason));
+    } else {
+      await controller.disableBiometrics();
+      message = 'Biometric unlock off';
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (message != null) OptionsScreen._toast(context, message);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final available = ref.watch(biometricsAvailableProvider).value ?? false;
+    final noun = widget.type == UnlockType.pin ? 'PIN' : 'password';
+    return SwitchListTile(
+      secondary: const Icon(Icons.fingerprint),
+      title: const Text('Biometric unlock'),
+      subtitle: Text(available
+          ? 'Fingerprint or face. Your $noun is still needed every 7 days.'
+          : 'Set up a fingerprint or face in your phone settings first'),
+      value: available && widget.settings.biometricEnabled,
+      onChanged: available && !_busy ? _toggle : null,
+    );
+  }
 }
 
 /// Options: section caption ("Unlock", "Protection", ...).

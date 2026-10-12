@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/security/clipboard_guard.dart';
 import '../core/settings/settings_store.dart';
 import '../core/vault/vault_repository.dart';
+import '../platform/biometrics.dart';
+import '../platform/sensitive_clipboard.dart';
 import '../platform/window.dart';
 
 /// App data folder: the private support folder from path_provider. Set in
@@ -31,11 +33,24 @@ final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 /// Android and iOS; tests override it to check both layouts.
 final mobileLayoutProvider = Provider<bool>((ref) => !isDesktop);
 
+/// Biometric unlock: fingerprint / face check and the secure key slot.
+/// Mobile only; desktop gets a stand-in that is never available.
+final biometricsProvider = Provider<Biometrics>(
+  (ref) => isDesktop ? const NoBiometrics() : DeviceBiometrics(),
+);
+
+/// Biometric unlock: whether this phone has a fingerprint or face set up
+/// (Options shows the switch greyed out when not).
+final biometricsAvailableProvider = FutureProvider<bool>(
+  (ref) => ref.watch(biometricsProvider).isAvailable(),
+);
+
 /// Clipboard clearing: one guard for the whole app, so a countdown keeps
 /// running across tabs and after locking. Uses Flutter's Clipboard.
 final clipboardGuardProvider = Provider<ClipboardGuard>((ref) {
   final guard = ClipboardGuard(
     write: (text) => Clipboard.setData(ClipboardData(text: text)),
+    writeSecret: copySensitive,
     read: () async =>
         (await Clipboard.getData(Clipboard.kTextPlain))?.text,
     clock: ref.watch(clockProvider),

@@ -14,6 +14,26 @@ void main() {
     expect(s.clipboardClearSeconds, 30);
     expect(s.sortOrder, SortOrder.nameAsc);
     expect(s.lockout, LockoutState.initial);
+    expect(s.biometricEnabled, isFalse);
+    expect(s.biometricOffered, isFalse);
+    expect(s.biometricFailures, 0);
+  });
+
+  test('biometric fields round-trip; bad values fall back', () {
+    final s = const Settings().copyWith(
+      biometricEnabled: true,
+      biometricOffered: true,
+      biometricFailures: 3,
+    );
+    expect(Settings.fromJson(s.toJson()).toJson(), s.toJson());
+    final bad = Settings.fromJson({
+      'biometricEnabled': 'yes',
+      'biometricOffered': 1,
+      'biometricFailures': -2,
+    });
+    expect(bad.biometricEnabled, isFalse);
+    expect(bad.biometricOffered, isFalse);
+    expect(bad.biometricFailures, 0);
   });
 
   test('round-trips through JSON', () {
