@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,11 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vaultify/app.dart';
 import 'package:vaultify/core/crypto/cipher.dart';
+import 'package:vaultify/core/crypto/kdf.dart';
 import 'package:vaultify/core/settings/settings.dart';
 import 'package:vaultify/core/settings/settings_store.dart';
+import 'package:vaultify/core/vault/backup.dart';
 import 'package:vaultify/core/vault/entry.dart';
 import 'package:vaultify/core/vault/vault_file.dart';
 import 'package:vaultify/core/vault/vault_repository.dart';
+import 'package:vaultify/platform/backup_files.dart';
 import 'package:vaultify/platform/biometrics.dart';
 import 'package:vaultify/ui/providers.dart';
 
@@ -116,6 +120,16 @@ class FakeVaultRepository extends Fake implements VaultRepository {
     saved[i] = saved[i].copyWith(
         username: entry.username, password: entry.password);
   }
+
+  // Backup import: same merge rules as the real vault.
+  @override
+  Future<MergeResult> importEntries(List<Entry> incoming) async {
+    final result = mergeEntries(saved, incoming);
+    saved
+      ..clear()
+      ..addAll(result.entries);
+    return result;
+  }
 }
 
 /// Biometric unlock tests: the key [FakeVaultRepository] uses for [secret].
@@ -165,6 +179,60 @@ class FakeBiometrics implements Biometrics {
   Future<void> deleteRecord() async => record = null;
 }
 
+/// Backup export/import tests: a stand-in for [BackupCodec] that skips
+/// Argon2 and AES. The file is still a real [BackupFile] envelope (so the
+/// app's own format check runs), but the "nonce" holds the password and
+/// the "ciphertext" is the plain payload. Test-only.
+class FakeBackupCodec extends Fake implements BackupCodec {
+  @override
+  Future<String> seal(
+    List<Entry> entries,
+    String password, {
+    required DateTime now,
+  }) async =>
+      BackupFile(
+        exported: now.toUtc(),
+        kdf: KdfParams(salt: const [0], memoryKiB: 8, iterations: 1),
+        sealed: Sealed(
+          nonce: utf8.encode(password),
+          cipherText: encodePayload(entries),
+        ),
+      ).encode();
+
+  @override
+  Future<List<Entry>> open(BackupFile file, String password) async {
+    if (utf8.decode(file.sealed.nonce) != password) {
+      throw const DecryptionFailedException();
+    }
+    return decodePayload(file.sealed.cipherText);
+  }
+}
+
+/// Backup export/import tests: fake Save / Open windows. [whileOpen] runs
+/// while a window is "on screen" (e.g. to send the app to the background).
+class FakeBackupFiles implements BackupFiles {
+  String? savedName;
+  String? savedText;
+  bool cancelSave = false;
+  String? toPick;
+  Future<void> Function()? whileOpen;
+
+  @override
+  Future<bool> save(String fileName, List<int> bytes) async {
+    await whileOpen?.call();
+    if (cancelSave) return false;
+    savedName = fileName;
+    savedText = utf8.decode(bytes);
+    return true;
+  }
+
+  @override
+  Future<String?> pickText() async {
+    await whileOpen?.call();
+    return toPick;
+  }
+}
+
 /// Widget tests: pumps the whole app with fakes; [mobile] picks the layout.
 Future<void> pumpVaultify(
   WidgetTester tester, {
@@ -173,6 +241,7 @@ Future<void> pumpVaultify(
   bool mobile = false,
   DateTime Function()? clock,
   Biometrics? biometrics,
+  BackupFiles? backupFiles,
 }) async {
   await tester.pumpWidget(ProviderScope(
     overrides: [
@@ -183,6 +252,9 @@ Future<void> pumpVaultify(
       if (clock != null) clockProvider.overrideWithValue(clock),
       if (biometrics != null)
         biometricsProvider.overrideWithValue(biometrics),
+      backupCodecProvider.overrideWithValue(FakeBackupCodec()),
+      if (backupFiles != null)
+        backupFilesProvider.overrideWithValue(backupFiles),
     ],
     child: const VaultifyApp(),
   ));

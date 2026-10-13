@@ -80,6 +80,7 @@ Flutter is chosen because one Dart codebase builds native apps for all four plat
 | Biometric unlock (mobile) | `local_auth` |
 | Key storage for biometric unlock | `flutter_secure_storage` (Keychain / Keystore) |
 | Desktop window size and position | `window_manager` |
+| Backup export / import: system Save and Open windows | `file_picker` |
 | Fonts bundled offline | Inter and JetBrains Mono as asset files (no `google_fonts` network loading) |
 | Icons | Material Symbols (built into Flutter) |
 | App icons | `flutter_launcher_icons` (dev only) |
@@ -154,6 +155,7 @@ Three areas, Generator, Saved and Options, behave the same everywhere; only touc
 - Auto-lock time; background lock delay (mobile)
 - Clipboard clear time
 - Default generator settings
+- Backup: Export backup, Import backup (see "Backup export and import")
 - About: version, "Your vault lives only on this device", data folder path (desktop) with an Open folder button
 
 ### Desktop versus mobile
@@ -269,6 +271,14 @@ class Entry {
 - On load, if `vault.vfy` fails to parse (not a wrong PIN), offer to restore from `.bak`.
 - Changing the PIN or password re-derives the key with a new salt and re-encrypts.
 - Keep the KDF parameters in the file so future versions can strengthen them and migrate on unlock.
+
+**Backup export and import** (added after M7, pulled forward from Later versions)
+
+- Export (Options): current PIN or password (counts toward wrong tries), then a backup password typed twice (12+ characters, separate from the PIN), then the system Save window. File name `vaultify-backup-YYYY-MM-DD.vaultify`.
+- File: same layout as the vault file but `"format": "vaultify-backup"`, an `"exported"` UTC date and no unlock type; Argon2id 64 MiB, 3 iterations, fresh salt and nonce; payload `{ "entries": [...] }`.
+- Import (Options): pick a file, enter its backup password (wrong tries don't count toward the PIN lockout), then merge: exact duplicates (name ignoring case, username, password) are skipped; a taken name becomes "Name (2)"; nothing already saved is changed or removed. Files asking for more than 256 MiB / 10 iterations / parallelism 4 are refused.
+- Background lock is paused only while Vaultify's own Save / Open window is open.
+- No cloud backup of the vault itself: Android `allowBackup="false"`; iOS marks the app support folder excluded from backup.
 
 ## Project structure
 
@@ -386,7 +396,7 @@ Android and Windows can be shared cheaply right away; iOS needs a paid Apple acc
 
 **Planned after v1**, roughly in priority order:
 
-1. Encrypted export and import, which also lets users move a vault between PC and phone by hand
+1. ~~Encrypted export and import~~ (built after M7; see "Backup export and import")
 2. Edit an entry; website and notes fields
 3. Categories or tags
 4. Passphrase mode, e.g. `river-candle-orbit-42`

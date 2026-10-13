@@ -307,4 +307,42 @@ void main() {
       expect(replaced.updated, DateTime.utc(2027));
     });
   });
+
+  group('backup import', () {
+    test('merged entries are saved and survive reopening', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('Gmail', 'old'));
+      final result = await r.importEntries([
+        entry('Gmail', 'new'),
+        entry('Bank'),
+      ]);
+      expect((result.added, result.renamed), (2, 1));
+
+      final reopened = repo();
+      await reopened.unlock(pin);
+      expect(reopened.entries.map((e) => e.name), [
+        'Gmail',
+        'Gmail (2)',
+        'Bank',
+      ]);
+    });
+
+    test('nothing new means no save', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('Gmail'));
+      final before = await r.vaultFile.readAsString();
+      final result = await r.importEntries([r.entries.single]);
+      expect(result.skipped, 1);
+      expect(await r.vaultFile.readAsString(), before);
+    });
+
+    test('needs an unlocked vault', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      r.lock();
+      await expectLater(r.importEntries([entry('A')]), throwsStateError);
+    });
+  });
 }

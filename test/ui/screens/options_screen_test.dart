@@ -296,6 +296,8 @@ void main() {
     testWidgets('About says the vault stays on this device', (tester) async {
       await openUnlocked(tester);
       await openOptions(tester);
+      // About is last, below the Backup section: scroll down to it.
+      await tester.scrollUntilVisible(find.text('Open folder'), 200);
       expect(find.textContaining('lives only on this device'), findsOneWidget);
       expect(find.text('Open folder'), findsOneWidget);
     });

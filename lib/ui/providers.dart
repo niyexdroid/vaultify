@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/security/clipboard_guard.dart';
 import '../core/settings/settings_store.dart';
+import '../core/vault/backup.dart';
 import '../core/vault/vault_repository.dart';
+import '../platform/backup_files.dart';
 import '../platform/biometrics.dart';
 import '../platform/sensitive_clipboard.dart';
 import '../platform/window.dart';
@@ -58,3 +60,37 @@ final clipboardGuardProvider = Provider<ClipboardGuard>((ref) {
   ref.onDispose(guard.dispose);
   return guard;
 });
+
+/// Backup export/import: encrypts and decrypts backup files. Tests swap in
+/// a stand-in that skips Argon2.
+final backupCodecProvider = Provider<BackupCodec>((ref) => const BackupCodec());
+
+/// Backup export/import: the system Save / Open windows.
+final backupFilesProvider = Provider<BackupFiles>(
+  (ref) => const SystemBackupFiles(),
+);
+
+/// Backup export/import (mobile): background lock pause. Opening the system
+/// Save / Open window sends Vaultify to the background, which would
+/// otherwise lock the vault mid-export. Only Vaultify's own windows pause
+/// it; the idle auto-lock still applies when the user comes back.
+final backgroundLockPauseProvider = Provider<BackgroundLockPause>(
+  (ref) => BackgroundLockPause(),
+);
+
+class BackgroundLockPause {
+  int _depth = 0;
+
+  /// Whether a Save / Open window is open right now.
+  bool get active => _depth > 0;
+
+  /// Runs [action] (which opens a system window) with background lock off.
+  Future<T> during<T>(Future<T> Function() action) async {
+    _depth++;
+    try {
+      return await action();
+    } finally {
+      _depth--;
+    }
+  }
+}

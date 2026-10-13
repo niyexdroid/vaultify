@@ -108,3 +108,35 @@ class Entry {
   @override
   String toString() => 'Entry($id)';
 }
+
+/// Duplicate names: two names match ignoring case and surrounding spaces.
+bool sameEntryName(String a, String b) =>
+    a.trim().toLowerCase() == b.trim().toLowerCase();
+
+/// Backup import: a name from a file made to fit the 1–64 character rule
+/// (trimmed; cut to 64; "Imported" if empty).
+String cleanEntryName(String name) {
+  final trimmed = name.trim();
+  if (trimmed.isEmpty) return 'Imported';
+  final runes = trimmed.runes;
+  if (runes.length <= Entry.maxNameLength) return trimmed;
+  return String.fromCharCodes(runes.take(Entry.maxNameLength)).trimRight();
+}
+
+/// Duplicate names, "Keep both" and backup import: [name] if free,
+/// otherwise the first free "Name (2)", "Name (3)"... The base is shortened
+/// so the result still fits in 64 characters.
+String nextFreeEntryName(String name, bool Function(String) taken) {
+  final base = name.trim();
+  if (!taken(base)) return base;
+  for (var n = 2; ; n++) {
+    final suffix = ' ($n)';
+    final room = Entry.maxNameLength - suffix.length;
+    final runes = base.runes.toList();
+    final shortBase = runes.length > room
+        ? String.fromCharCodes(runes.take(room)).trimRight()
+        : base;
+    final candidate = '$shortBase$suffix';
+    if (!taken(candidate)) return candidate;
+  }
+}

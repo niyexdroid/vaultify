@@ -16,6 +16,7 @@ class SecretInput extends StatefulWidget {
     required this.controller,
     required this.onSubmit,
     this.enabled = true,
+    this.hint,
   });
 
   final UnlockType type;
@@ -23,6 +24,10 @@ class SecretInput extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback onSubmit;
   final bool enabled;
+
+  /// Placeholder text; defaults to "PIN" or "Master password" (backup
+  /// export/import uses "Backup password").
+  final String? hint;
 
   @override
   State<SecretInput> createState() => _SecretInputState();
@@ -74,7 +79,7 @@ class _SecretInputState extends State<SecretInput> {
       textAlign: _isPin ? TextAlign.center : TextAlign.start,
       onSubmitted: (_) => widget.onSubmit(),
       decoration: InputDecoration(
-        hintText: _isPin ? 'PIN' : 'Master password',
+        hintText: widget.hint ?? (_isPin ? 'PIN' : 'Master password'),
         suffixIcon: _isPin
             ? null
             : IconButton(

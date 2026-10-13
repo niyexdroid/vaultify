@@ -67,6 +67,8 @@ class _AutoLockScopeState extends ConsumerState<AutoLockScope> {
   // otherwise a timer locks after the delay. Phones may pause that timer,
   // so the time away is also checked on return.
   void _onHidden() {
+    // Backup export/import: Vaultify's own Save / Open window is showing.
+    if (ref.read(backgroundLockPauseProvider).active) return;
     _hiddenAt = _now();
     final seconds = _backgroundSeconds;
     if (seconds <= 0) {

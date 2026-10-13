@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/crypto/cipher.dart';
 import '../core/settings/settings.dart';
+import '../core/vault/backup.dart';
 import '../core/vault/entry.dart';
 import 'providers.dart';
 import 'session.dart';
@@ -53,6 +55,27 @@ class VaultEntries extends Notifier<List<Entry>> {
       now: ref.read(clockProvider)(),
     ));
     state = repo.entries;
+  }
+
+  /// Backup export: all saved entries encrypted with [password], as the
+  /// backup file's text.
+  Future<String> exportBackup(String password) => ref
+      .read(backupCodecProvider)
+      .seal(
+        ref.read(vaultRepositoryProvider).entries,
+        password,
+        now: ref.read(clockProvider)(),
+      );
+
+  /// Backup import: decrypts [file] with [password] and merges its entries
+  /// into the vault. Throws [DecryptionFailedException] for a wrong
+  /// password.
+  Future<MergeResult> importBackup(BackupFile file, String password) async {
+    final incoming = await ref.read(backupCodecProvider).open(file, password);
+    final repo = ref.read(vaultRepositoryProvider);
+    final result = await repo.importEntries(incoming);
+    state = repo.entries;
+    return result;
   }
 
   /// Saved screen, Delete: removes the entry and saves immediately.

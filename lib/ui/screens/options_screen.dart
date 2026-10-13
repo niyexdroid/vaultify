@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/generator/generator.dart';
 import '../../core/settings/settings.dart';
+import '../../core/vault/backup.dart';
 import '../../core/vault/vault_file.dart';
 import '../../platform/open_folder.dart';
 import '../app_info.dart';
@@ -12,6 +13,9 @@ import '../generator_controller.dart';
 import '../providers.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../vault_entries.dart';
+import 'backup_export_screen.dart';
+import 'backup_import_screen.dart';
 import 'change_secret_screen.dart';
 
 /// Options screen: unlock secret, biometric unlock and background lock
@@ -42,6 +46,51 @@ class OptionsScreen extends ConsumerWidget {
     if (changed == true && context.mounted) {
       _toast(context,
           newType == UnlockType.pin ? 'PIN changed' : 'Password changed');
+    }
+  }
+
+  // Backup export: opens the export steps; nothing to do for an empty vault.
+  Future<void> _exportBackup(
+    BuildContext context,
+    WidgetRef ref,
+    UnlockType type,
+  ) async {
+    if (ref.read(vaultEntriesProvider).isEmpty) {
+      _toast(context, 'No saved passwords to export yet');
+      return;
+    }
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => BackupExportScreen(currentType: type)),
+    );
+    if (saved == true && context.mounted) _toast(context, 'Backup saved');
+  }
+
+  // Backup import: pick a file (background lock paused while the Open
+  // window shows), check it is a backup, then ask for its password.
+  Future<void> _importBackup(BuildContext context, WidgetRef ref) async {
+    const notBackup = "That file isn't a Vaultify backup";
+    String? text;
+    try {
+      text = await ref
+          .read(backgroundLockPauseProvider)
+          .during(() => ref.read(backupFilesProvider).pickText());
+    } catch (_) {
+      if (context.mounted) _toast(context, notBackup);
+      return;
+    }
+    if (text == null || !context.mounted) return;
+    final BackupFile file;
+    try {
+      file = BackupFile.decode(text);
+    } on VaultFormatException {
+      _toast(context, notBackup);
+      return;
+    }
+    final result = await Navigator.of(context).push<MergeResult>(
+      MaterialPageRoute(builder: (_) => BackupImportScreen(file: file)),
+    );
+    if (result != null && context.mounted) {
+      _toast(context, importSummary(result));
     }
   }
 
@@ -157,6 +206,27 @@ class OptionsScreen extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+
+        // Backup export/import: an encrypted file with its own password, to
+        // keep safe or to move passwords to another device.
+        const _Section('Backup'),
+        ListTile(
+          leading: const Icon(Icons.upload_file_outlined),
+          title: const Text('Export backup'),
+          subtitle: const Text(
+            'Save an encrypted copy of your passwords, protected by a '
+            'backup password',
+          ),
+          onTap: () => _exportBackup(context, ref, type),
+        ),
+        ListTile(
+          leading: const Icon(Icons.download_outlined),
+          title: const Text('Import backup'),
+          subtitle: const Text(
+            'Add passwords from a backup file, e.g. from another device',
+          ),
+          onTap: () => _importBackup(context, ref),
         ),
 
         // About: version, this-device-only note, data folder (desktop).

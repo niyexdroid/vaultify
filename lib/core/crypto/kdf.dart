@@ -100,3 +100,9 @@ Future<bool> keysMatch(SecretKey a, SecretKey b) async {
   }
   return diff == 0;
 }
+
+/// Lock and backup: zero a key's bytes once it is no longer needed, where
+/// the key type allows it.
+void destroyKey(SecretKey key) {
+  if (key is SecretKeyData) key.destroy();
+}

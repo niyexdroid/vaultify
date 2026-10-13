@@ -4,6 +4,7 @@ import 'package:cryptography/cryptography.dart';
 
 import '../crypto/cipher.dart';
 import '../crypto/kdf.dart';
+import 'backup.dart';
 import 'entry.dart';
 import 'vault_file.dart';
 
@@ -147,19 +148,15 @@ class VaultRepository {
 
   /// Duplicate names, "Keep both": the first free "Name (2)", "Name (3)"...
   /// Shortens the base so the result still fits in 64 characters.
-  String nextFreeName(String name) {
-    final base = name.trim();
-    if (!nameExists(base)) return base;
-    for (var n = 2;; n++) {
-      final suffix = ' ($n)';
-      final room = Entry.maxNameLength - suffix.length;
-      final runes = base.runes.toList();
-      final shortBase = runes.length > room
-          ? String.fromCharCodes(runes.take(room)).trimRight()
-          : base;
-      final candidate = '$shortBase$suffix';
-      if (!nameExists(candidate)) return candidate;
-    }
+  String nextFreeName(String name) => nextFreeEntryName(name, nameExists);
+
+  /// Backup import: merges [incoming] into the vault (see [mergeEntries])
+  /// and saves once if anything was added.
+  Future<MergeResult> importEntries(List<Entry> incoming) async {
+    _requireUnlocked();
+    final result = mergeEntries(_entries, incoming);
+    if (result.added > 0) await _commit(result.entries);
+    return result;
   }
 
   /// Duplicate names, "Replace": overwrites the username and password of
@@ -286,10 +283,7 @@ class VaultRepository {
   }
 
   // Lock: zero the key bytes where the key type allows it.
-  static void _destroy(SecretKey key) {
-    if (key is SecretKeyData) key.destroy();
-  }
+  static void _destroy(SecretKey key) => destroyKey(key);
 
-  static bool _sameName(String a, String b) =>
-      a.trim().toLowerCase() == b.trim().toLowerCase();
+  static bool _sameName(String a, String b) => sameEntryName(a, b);
 }
