@@ -67,7 +67,7 @@ Flutter is chosen because one Dart codebase builds native apps for all four plat
 | --- | --- | --- |
 | Windows | 10, 64-bit | Windows PC or GitHub Actions |
 | macOS | 12 Monterey | Mac or GitHub Actions |
-| Android | 8.0 (API 26) | Any OS |
+| Android | 10 (API 29) | Any OS |
 | iOS | 15 | Mac only (Xcode), or a cloud Mac in CI |
 
 **Packages (ask before adding others)**
