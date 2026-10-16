@@ -326,7 +326,8 @@ Build in this order, one milestone per Claude Code session; each ends with a don
 6. **Options and protection.** Options screen, auto-lock, clipboard clearing, change PIN/password, keyboard shortcuts. *Done when:* the Security behaviour checks in Testing pass.
 7. **Mobile extras.** Biometric unlock, background lock, `FLAG_SECURE`, iOS privacy cover, sensitive clipboard flag. *Done when:* fingerprint or Face ID unlocks; screenshots are blocked on Android.
 8. **Polish.** App icons, window size memory, empty states, toasts, accessibility labels on icon buttons, final pass against the UI design section. *Done when:* the full acceptance checklist passes on at least one desktop and one phone.
-9. **Packaging and CI.** GitHub Actions builds Windows installer, macOS DMG, Android AAB/APK and iOS build on a version tag. *Done when:* a tag produces downloadable files for all four platforms.
+9. **TOTP codes.** Store a TOTP secret on an entry, show the live 6-digit code with its countdown, copy it, and add a secret by scanning a QR code on the phone or by pasting an `otpauth://` link or key on any platform. *Done when:* a code Vaultify shows matches the one another authenticator app shows for the same account at the same moment.
+10. **Packaging and CI.** GitHub Actions builds Windows installer, macOS DMG, Android AAB/APK and iOS build on a version tag. *Done when:* a tag produces downloadable files for all four platforms.
 
 ## Testing and acceptance
 
@@ -405,6 +406,8 @@ Android and Windows can be shared cheaply right away; iOS needs a paid Apple acc
 7. Old-password warning (over a year)
 8. Optional sync between devices (needs its own security design)
 9. Linux build; autofill on Android and iOS
+
+**Decided 2026-10-16:** TOTP codes are now milestone 9 (after Polish). Secrets can be added by QR scan on phones, which will need a camera package and camera permission — to be confirmed when that milestone starts.
 
 **Open decisions**
 
