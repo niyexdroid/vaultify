@@ -17,6 +17,10 @@ dependencies:
   local_auth: ^3.0.2
   flutter_secure_storage: ^11.2.0
   window_manager: ^0.5.2
+  # Window size memory: reads display sizes so a window saved on a monitor
+  # that is now unplugged is pulled back on screen. Already used inside
+  # window_manager; named here because Vaultify calls it directly.
+  screen_retriever: ^0.2.2
   file_picker: ^13.1.0
 
 dev_dependencies:
@@ -41,3 +45,21 @@ flutter:
       fonts:
         - asset: assets/fonts/JetBrainsMono-Regular.ttf
           weight: 400
+
+# App icons: generated from assets/icon/ by `dart run flutter_launcher_icons`.
+# Redraw the sources first with `flutter test tool/make_icon.dart`.
+flutter_launcher_icons:
+  image_path: assets/icon/vaultify.png
+  android: true
+  adaptive_icon_background: "#1A9E5B"
+  adaptive_icon_foreground: assets/icon/vaultify_foreground.png
+  ios: true
+  image_path_ios: assets/icon/vaultify_ios.png
+  remove_alpha_ios: true
+  windows:
+    generate: true
+    image_path: assets/icon/vaultify.png
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: assets/icon/vaultify.png

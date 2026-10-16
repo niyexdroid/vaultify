@@ -5,6 +5,81 @@ import '../vault/vault_file.dart';
 /// Saved list sort order: A–Z (default) or newest first.
 enum SortOrder { nameAsc, newestFirst }
 
+/// Window size memory: the desktop window's last size and position, so it
+/// reopens where you left it. Plain numbers, so core stays free of Flutter.
+class WindowBounds {
+  const WindowBounds({
+    required this.width,
+    required this.height,
+    this.x,
+    this.y,
+  });
+
+  /// Sizes outside these bounds are treated as damaged and ignored, so a bad
+  /// settings file can never open a window too small to use or far off screen.
+  static const double minSide = 200;
+  static const double maxSide = 20000;
+  static const double maxOffset = 20000;
+
+  final double width;
+  final double height;
+
+  /// Top-left position; null means "let the system place the window".
+  final double? x;
+  final double? y;
+
+  Map<String, Object?> toJson() => {
+        'width': width,
+        'height': height,
+        if (x != null) 'x': x,
+        if (y != null) 'y': y,
+      };
+
+  /// Window size memory: reads saved bounds, returning null if anything is
+  /// missing, not a number, or out of range.
+  static WindowBounds? fromJson(Object? json) {
+    if (json is! Map<String, Object?>) return null;
+    final width = _side(json['width']);
+    final height = _side(json['height']);
+    if (width == null || height == null) return null;
+    return WindowBounds(
+      width: width,
+      height: height,
+      x: _offset(json['x']),
+      y: _offset(json['y']),
+    );
+  }
+
+  static double? _side(Object? value) {
+    final number = _number(value);
+    if (number == null) return null;
+    return number >= minSide && number <= maxSide ? number : null;
+  }
+
+  static double? _offset(Object? value) {
+    final number = _number(value);
+    if (number == null) return null;
+    return number.abs() <= maxOffset ? number : null;
+  }
+
+  static double? _number(Object? value) {
+    final number = value is num ? value.toDouble() : null;
+    if (number == null || !number.isFinite) return null;
+    return number;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is WindowBounds &&
+      other.width == width &&
+      other.height == height &&
+      other.x == x &&
+      other.y == y;
+
+  @override
+  int get hashCode => Object.hash(width, height, x, y);
+}
+
 /// Settings: everything in `settings.json`. Nothing here is secret.
 class Settings {
   const Settings({
@@ -18,6 +93,7 @@ class Settings {
     this.biometricEnabled = false,
     this.biometricOffered = false,
     this.biometricFailures = 0,
+    this.windowBounds,
   });
 
   // Settings: the choices offered in Options. 0 means "never" / "off" /
@@ -60,6 +136,10 @@ class Settings {
   /// last typed; at 5 the PIN is required.
   final int biometricFailures;
 
+  /// Window size memory (desktop): last window size and position; null until
+  /// the window has been moved or resized once.
+  final WindowBounds? windowBounds;
+
   Settings copyWith({
     UnlockType? unlockType,
     int? autoLockMinutes,
@@ -71,6 +151,7 @@ class Settings {
     bool? biometricEnabled,
     bool? biometricOffered,
     int? biometricFailures,
+    WindowBounds? windowBounds,
   }) =>
       Settings(
         unlockType: unlockType ?? this.unlockType,
@@ -85,6 +166,7 @@ class Settings {
         biometricEnabled: biometricEnabled ?? this.biometricEnabled,
         biometricOffered: biometricOffered ?? this.biometricOffered,
         biometricFailures: biometricFailures ?? this.biometricFailures,
+        windowBounds: windowBounds ?? this.windowBounds,
       );
 
   Map<String, Object?> toJson() => {
@@ -98,6 +180,7 @@ class Settings {
         'biometricEnabled': biometricEnabled,
         'biometricOffered': biometricOffered,
         'biometricFailures': biometricFailures,
+        if (windowBounds != null) 'windowBounds': windowBounds!.toJson(),
       };
 
   /// Settings: reads `settings.json`, using the default for any field that
@@ -129,6 +212,7 @@ class Settings {
       biometricEnabled: json['biometricEnabled'] == true,
       biometricOffered: json['biometricOffered'] == true,
       biometricFailures: failures is int && failures > 0 ? failures : 0,
+      windowBounds: WindowBounds.fromJson(json['windowBounds']),
     );
   }
 }

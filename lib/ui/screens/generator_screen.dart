@@ -400,22 +400,25 @@ class _OptionCheck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(Radii.control),
-      onTap: () => onChanged(!value),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: minTouchTarget),
-        child: Row(
-          children: [
-            Checkbox(
-              value: value,
-              onChanged: (v) => onChanged(v ?? false),
-              semanticLabel: label,
-            ),
-            Flexible(
-              child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            ),
-          ],
+    // Accessibility: the box and its wording are merged into one spoken
+    // item ("Symbols, checked"), instead of the label being read twice.
+    return MergeSemantics(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.control),
+        onTap: () => onChanged(!value),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: minTouchTarget),
+          child: Row(
+            children: [
+              Checkbox(
+                value: value,
+                onChanged: (v) => onChanged(v ?? false),
+              ),
+              Flexible(
+                child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -21,40 +21,46 @@ class StrengthBar extends StatelessWidget {
       Strength.strong || Strength.veryStrong => c.strong,
     };
     final fill = empty ? 0.0 : strengthFill(bits);
-    return Row(
-      children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: SizedBox(
-              height: 4,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ColoredBox(color: c.border),
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: fill,
-                    child: ColoredBox(color: color),
-                  ),
-                ],
+    // Accessibility: the bar is colour only, so screen readers are given the
+    // whole fact ("Password strength: Strong") instead of a lone word.
+    return Semantics(
+      label: empty ? 'No password yet' : 'Password strength: ${strength.label}',
+      excludeSemantics: true,
+      child: Row(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: SizedBox(
+                height: 4,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(color: c.border),
+                    FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: fill,
+                      child: ColoredBox(color: color),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: Space.x2),
-        SizedBox(
-          width: 76,
-          child: Text(
-            empty ? '' : strength.label,
-            textAlign: TextAlign.right,
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(color: color),
+          const SizedBox(width: Space.x2),
+          SizedBox(
+            width: 76,
+            child: Text(
+              empty ? '' : strength.label,
+              textAlign: TextAlign.right,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelMedium
+                  ?.copyWith(color: color),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

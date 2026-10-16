@@ -80,6 +80,7 @@ Flutter is chosen because one Dart codebase builds native apps for all four plat
 | Biometric unlock (mobile) | `local_auth` |
 | Key storage for biometric unlock | `flutter_secure_storage` (Keychain / Keystore) |
 | Desktop window size and position | `window_manager` |
+| Display sizes, so a remembered window can't open off screen | `screen_retriever` |
 | Backup export / import: system Save and Open windows | `file_picker` |
 | Fonts bundled offline | Inter and JetBrains Mono as asset files (no `google_fonts` network loading) |
 | Icons | Material Symbols (built into Flutter) |
