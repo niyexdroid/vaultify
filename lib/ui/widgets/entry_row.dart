@@ -41,12 +41,19 @@ class EntryRow extends StatelessWidget {
     final username = entry.username.isEmpty ? 'No username' : entry.username;
     final mono = passwordTextStyle(c, mobile: mobile);
 
-    // Saved row, desktop: action icons always visible.
+    // Saved row, desktop: action icons always visible. They are kept tight
+    // so the "username · date" line still fits at the smallest window width;
+    // the 44 px touch target only applies to mobile, which hides these.
     Widget icon(String tooltip, IconData data, VoidCallback? onPressed) =>
         IconButton(
           tooltip: tooltip,
           visualDensity: VisualDensity.compact,
           iconSize: 20,
+          style: IconButton.styleFrom(
+            minimumSize: const Size(32, 32),
+            padding: const EdgeInsets.all(6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
           onPressed: onPressed,
           icon: Icon(data),
         );
