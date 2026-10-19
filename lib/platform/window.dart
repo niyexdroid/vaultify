@@ -7,8 +7,12 @@ import 'package:window_manager/window_manager.dart';
 
 import '../core/settings/settings.dart';
 
-/// True on Windows and macOS, where the desktop shell is used.
-bool get isDesktop => Platform.isWindows || Platform.isMacOS;
+/// True everywhere except Android and iOS, so Windows and macOS get the
+/// desktop shell and no biometrics. Asking which platform is *not* a phone,
+/// rather than naming Windows and macOS, keeps widget tests behaving the same
+/// whatever computer runs them: on a Linux CI machine the phone path would
+/// otherwise be taken and reach for a biometrics plugin that is not there.
+bool get isDesktop => !(Platform.isAndroid || Platform.isIOS);
 
 const Size defaultWindowSize = Size(420, 680);
 const Size minimumWindowSize = Size(380, 560);
