@@ -13,6 +13,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vaultify/core/vault/entry.dart';
 
+import 'package:vaultify/ui/screens/qr_scan_screen.dart';
+import 'package:vaultify/ui/theme.dart';
+
 import '../test/ui/fakes.dart';
 
 const String outDir = 'screens';
@@ -34,6 +37,8 @@ void main() {
   // Real fonts, so the screenshots show actual words and icons instead of
   // the blank boxes the test font draws.
   setUpAll(_loadFonts);
+
+  _captureViewfinder();
 
   // Desktop window at its default size, and a typical phone.
   const desktop = Size(420, 680);
@@ -159,4 +164,26 @@ Future<void> _shot(WidgetTester tester, String name) async {
     find.byType(MaterialApp),
     matchesGoldenFile('$outDir/$name.png'),
   );
+}
+
+// Scan QR code: the viewfinder on its own, over a stand-in for the camera
+// picture, since a widget test has no camera. The sweeping line is caught
+// part way down its travel.
+void _captureViewfinder() {
+  for (final dark in [false, true]) {
+    final suffix = dark ? 'dark' : 'light';
+    testWidgets('scan viewfinder ($suffix)', (tester) async {
+      await _sized(tester, const Size(390, 844), dark);
+      await tester.pumpWidget(MaterialApp(
+        theme: dark ? VaultifyTheme.dark : VaultifyTheme.light,
+        debugShowCheckedModeBanner: false,
+        home: const Scaffold(
+          backgroundColor: Color(0xFF3B3F45),
+          body: ScanViewfinder(),
+        ),
+      ));
+      await tester.pump(const Duration(milliseconds: 600));
+      await _shot(tester, 'scan-viewfinder-$suffix');
+    });
+  }
 }
