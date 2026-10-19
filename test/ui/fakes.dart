@@ -9,6 +9,7 @@ import 'package:vaultify/core/crypto/cipher.dart';
 import 'package:vaultify/core/crypto/kdf.dart';
 import 'package:vaultify/core/settings/settings.dart';
 import 'package:vaultify/core/settings/settings_store.dart';
+import 'package:vaultify/core/totp/totp.dart';
 import 'package:vaultify/core/vault/backup.dart';
 import 'package:vaultify/core/vault/entry.dart';
 import 'package:vaultify/core/vault/vault_file.dart';
@@ -119,6 +120,14 @@ class FakeVaultRepository extends Fake implements VaultRepository {
     if (i < 0) return add(entry);
     saved[i] = saved[i].copyWith(
         username: entry.username, password: entry.password);
+  }
+
+  // TOTP codes: add or remove an entry's two-factor secret.
+  @override
+  Future<void> setTotp(String id, TotpSecret? secret) async {
+    final i = saved.indexWhere((e) => e.id == id);
+    if (i < 0) return;
+    saved[i] = saved[i].copyWith(totp: secret, clearTotp: secret == null);
   }
 
   // Backup import: same merge rules as the real vault.

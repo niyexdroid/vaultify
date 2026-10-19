@@ -1,4 +1,5 @@
 import '../crypto/secure_random.dart';
+import '../totp/totp.dart';
 
 /// Saved entry: one saved password, as stored inside the encrypted payload.
 class Entry {
@@ -9,6 +10,7 @@ class Entry {
     required this.password,
     required this.created,
     required this.updated,
+    this.totp,
   });
 
   /// Saved entry: a new entry with a random 16-byte hex id and UTC dates.
@@ -18,6 +20,7 @@ class Entry {
     String username = '',
     required String password,
     required DateTime now,
+    TotpSecret? totp,
   }) {
     final trimmed = name.trim();
     if (!isValidName(trimmed)) {
@@ -31,6 +34,7 @@ class Entry {
       password: password,
       created: utc,
       updated: utc,
+      totp: totp,
     );
   }
 
@@ -49,11 +53,20 @@ class Entry {
   final DateTime created;
   final DateTime updated;
 
+  /// TOTP codes: this entry's two-factor secret, or null when it has none.
+  final TotpSecret? totp;
+
+  /// TOTP codes: whether this entry shows a live six-digit code.
+  bool get hasTotp => totp != null;
+
+  /// Passing [totp] sets the two-factor secret; [clearTotp] removes it.
   Entry copyWith({
     String? name,
     String? username,
     String? password,
     DateTime? updated,
+    TotpSecret? totp,
+    bool clearTotp = false,
   }) =>
       Entry(
         id: id,
@@ -62,6 +75,7 @@ class Entry {
         password: password ?? this.password,
         created: created,
         updated: (updated ?? this.updated).toUtc(),
+        totp: clearTotp ? null : (totp ?? this.totp),
       );
 
   Map<String, Object> toJson() => {
@@ -71,6 +85,9 @@ class Entry {
         'password': password,
         'created': created.toUtc().toIso8601String(),
         'updated': updated.toUtc().toIso8601String(),
+        // TOTP codes: written only when the entry has a secret, so entries
+        // saved before this feature keep exactly the shape they had.
+        if (totp != null) 'totp': totp!.toJson(),
       };
 
   /// Saved entry: reads one entry from the decrypted payload. Throws
@@ -93,6 +110,8 @@ class Entry {
         updated is! String) {
       throw const FormatException('entry has missing fields');
     }
+    // TOTP codes: absent in entries saved before the feature existed.
+    final totp = json['totp'];
     return Entry(
       id: id,
       name: name,
@@ -100,6 +119,7 @@ class Entry {
       password: password,
       created: DateTime.parse(created).toUtc(),
       updated: DateTime.parse(updated).toUtc(),
+      totp: totp == null ? null : TotpSecret.fromJson(totp),
     );
   }
 

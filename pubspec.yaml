@@ -22,6 +22,7 @@ dependencies:
   # window_manager; named here because Vaultify calls it directly.
   screen_retriever: ^0.2.2
   file_picker: ^13.1.0
+  mobile_scanner: ^7.4.2
 
 dev_dependencies:
   flutter_test:

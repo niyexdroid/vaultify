@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vaultify/core/totp/base32.dart';
+import 'package:vaultify/core/totp/totp.dart';
 import 'package:vaultify/core/vault/entry.dart';
 
 // Saved entry tests: creation rules and JSON.
@@ -43,5 +47,44 @@ void main() {
   test('toString never contains the password', () {
     final e = Entry.create(name: 'Bank', password: 'secret-value', now: now);
     expect(e.toString(), isNot(contains('secret-value')));
+  });
+
+  // TOTP codes: the two-factor secret rides along inside the entry.
+  group('two-factor secret', () {
+    final secret = TotpSecret(
+      key: decodeBase32('GEZDGNBVGY3TQOJQ'),
+      issuer: 'GitHub',
+      account: 'ada@example.com',
+    );
+
+    test('a new entry has none', () {
+      final e = Entry.create(name: 'Bank', password: 'x', now: now);
+      expect(e.hasTotp, isFalse);
+      expect(e.toJson().containsKey('totp'), isFalse);
+    });
+
+    test('survives a JSON round trip', () {
+      final e = Entry.create(
+          name: 'GitHub', password: 'x', now: now, totp: secret);
+      final back = Entry.fromJson(jsonDecode(jsonEncode(e.toJson())));
+      expect(back.hasTotp, isTrue);
+      expect(back.totp!.key, secret.key);
+      expect(back.totp!.label, 'GitHub · ada@example.com');
+    });
+
+    test('an entry saved before the feature reads back with none', () {
+      final old = Entry.create(name: 'Bank', password: 'x', now: now).toJson()
+        ..remove('totp');
+      expect(Entry.fromJson(old).hasTotp, isFalse);
+    });
+
+    test('copyWith sets it, clearTotp removes it', () {
+      final e = Entry.create(name: 'GitHub', password: 'x', now: now);
+      final withCode = e.copyWith(totp: secret);
+      expect(withCode.hasTotp, isTrue);
+      // Another copy that says nothing about it keeps the secret.
+      expect(withCode.copyWith(password: 'y').hasTotp, isTrue);
+      expect(withCode.copyWith(clearTotp: true).hasTotp, isFalse);
+    });
   });
 }

@@ -222,6 +222,8 @@ MergeResult mergeEntries(List<Entry> existing, List<Entry> incoming) {
         password: entry.password,
         created: entry.created,
         updated: entry.updated,
+        // TOTP codes: an imported entry keeps its two-factor secret.
+        totp: entry.totp,
       ),
     );
     added++;

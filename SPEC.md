@@ -82,6 +82,7 @@ Flutter is chosen because one Dart codebase builds native apps for all four plat
 | Desktop window size and position | `window_manager` |
 | Display sizes, so a remembered window can't open off screen | `screen_retriever` |
 | Backup export / import: system Save and Open windows | `file_picker` |
+| TOTP codes: scanning a QR code with the phone camera | `mobile_scanner` (Android and iOS only; desktop pastes the link instead) |
 | Fonts bundled offline | Inter and JetBrains Mono as asset files (no `google_fonts` network loading) |
 | Icons | Material Symbols (built into Flutter) |
 | App icons | `flutter_launcher_icons` (dev only) |
@@ -148,6 +149,13 @@ Three areas, Generator, Saved and Options, behave the same everywhere; only touc
 - Sort: A–Z by default; option for newest first.
 - Actions: show (re-hides after 10 s), copy password, copy username, delete (asks "Delete Gmail? This can't be undone.").
 - Empty state: "Save your first password" with a button to the Generator.
+
+**Two-factor codes (TOTP), added in M9**
+
+- An entry can hold one TOTP secret. Rows that have one show the live code (split "081 804"), the account it belongs to, a ring counting the seconds left, and a copy button. A copied code clears from the clipboard on the same timer as a password.
+- Add a secret: desktop pastes the `otpauth://` link or setup key; phones can also scan the QR code with the camera. Base32 keys are accepted in lower case, with spaces and without padding. SHA-1, SHA-256 and SHA-512, 6–8 digits and 10–120 second steps are supported; counter-based (HOTP) links are refused with a message.
+- Remove a secret: asks first ("The password stays"), since the secret only lives in this vault.
+- Row actions: desktop shows a shield icon (filled once a code is set); the mobile sheet gains "Copy code" and "Add/Remove two-factor code".
 
 ### Options
 
@@ -262,8 +270,20 @@ class Entry {
   final String password;
   final DateTime created;  // UTC
   final DateTime updated;  // UTC
+  final TotpSecret? totp;  // TOTP codes (M9); absent on entries without one
+}
+
+class TotpSecret {
+  final List<int> key;     // the shared secret's bytes, stored as base32
+  final int digits;        // 6-8, usually 6
+  final int period;        // 10-120 seconds, usually 30
+  final TotpAlgorithm algorithm;  // sha1 (usual), sha256, sha512
+  final String issuer;     // label only, e.g. "GitHub"
+  final String account;    // label only, e.g. "ada@example.com"
 }
 ```
+
+The `totp` field is left out of the JSON when an entry has no code, so vaults written before M9 read back unchanged and nothing needs migrating.
 
 **Saving rules**
 
@@ -357,6 +377,16 @@ v1 ships when every item passes on Windows 11, macOS 14, one Android phone (Andr
 - [ ] Duplicate names offer Replace or Keep both
 - [ ] Delete asks first; entries survive restart
 
+**Two-factor codes**
+
+- [ ] A code Vaultify shows matches another authenticator app's code for the same account at the same moment
+- [ ] The code changes on the 30 second step and the ring empties with it
+- [ ] A pasted `otpauth://` link and a pasted setup key both work on every platform
+- [ ] Scanning a QR code works on an Android phone and an iPhone
+- [ ] Copying a code clears from the clipboard like a password
+- [ ] Codes survive a restart; removing one leaves the password alone
+- [ ] Opening `vault.vfy` in a text editor shows no setup keys or account names
+
 **Security behaviour**
 
 - [ ] Clipboard clears after 30 s unless something else was copied
@@ -409,6 +439,8 @@ Android and Windows can be shared cheaply right away; iOS needs a paid Apple acc
 9. Linux build; autofill on Android and iOS
 
 **Decided 2026-10-16:** TOTP codes are now milestone 9 (after Polish). Secrets can be added by QR scan on phones, which will need a camera package and camera permission — to be confirmed when that milestone starts.
+
+**Decided 2026-10-17:** the camera package is `mobile_scanner`, on Android and iOS only. It reads QR codes on the phone itself, so the app stays offline; `CAMERA` permission and `NSCameraUsageDescription` say it is used only to scan a two-factor QR code. Desktop has no scanner and pastes the `otpauth://` link or key instead.
 
 **Open decisions**
 

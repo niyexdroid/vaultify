@@ -4,6 +4,7 @@ import 'package:cryptography/cryptography.dart';
 
 import '../crypto/cipher.dart';
 import '../crypto/kdf.dart';
+import '../totp/totp.dart';
 import 'backup.dart';
 import 'entry.dart';
 import 'vault_file.dart';
@@ -140,6 +141,21 @@ class VaultRepository {
   /// Saved entries: deletes the entry with [id] and saves immediately.
   Future<void> delete(String id) =>
       _commit([for (final e in _entries) if (e.id != id) e]);
+
+  /// TOTP codes: puts [secret] on the entry with [id], or removes its
+  /// two-factor secret when [secret] is null. Saves immediately. Does
+  /// nothing if no entry has that id.
+  Future<void> setTotp(String id, TotpSecret? secret) async {
+    _requireUnlocked();
+    if (!_entries.any((e) => e.id == id)) return;
+    await _commit([
+      for (final e in _entries)
+        if (e.id == id)
+          e.copyWith(totp: secret, clearTotp: secret == null)
+        else
+          e,
+    ]);
+  }
 
   /// Duplicate names: whether a saved entry already uses [name]
   /// (ignoring case and surrounding spaces).

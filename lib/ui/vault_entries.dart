@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/crypto/cipher.dart';
 import '../core/settings/settings.dart';
+import '../core/totp/totp.dart';
 import '../core/vault/backup.dart';
 import '../core/vault/entry.dart';
 import 'providers.dart';
@@ -76,6 +77,14 @@ class VaultEntries extends Notifier<List<Entry>> {
     final result = await repo.importEntries(incoming);
     state = repo.entries;
     return result;
+  }
+
+  /// TOTP codes: puts a two-factor secret on the entry, or removes it when
+  /// [secret] is null. Saves immediately.
+  Future<void> setTotp(String id, TotpSecret? secret) async {
+    final repo = ref.read(vaultRepositoryProvider);
+    await repo.setTotp(id, secret);
+    state = repo.entries;
   }
 
   /// Saved screen, Delete: removes the entry and saves immediately.

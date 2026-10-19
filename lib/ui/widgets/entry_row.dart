@@ -20,6 +20,9 @@ class EntryRow extends StatelessWidget {
     required this.onCopyPassword,
     required this.onCopyUsername,
     required this.onDelete,
+    required this.onAddCode,
+    required this.onRemoveCode,
+    this.codeView,
     this.onTap,
     this.onLongPress,
   });
@@ -31,6 +34,15 @@ class EntryRow extends StatelessWidget {
   final VoidCallback onCopyPassword;
   final VoidCallback onCopyUsername;
   final VoidCallback onDelete;
+
+  /// TOTP codes: add a two-factor secret to this entry, or take it away.
+  final VoidCallback onAddCode;
+  final VoidCallback onRemoveCode;
+
+  /// TOTP codes: the live code line, shown under the row when the entry has
+  /// a two-factor secret (null when it has none).
+  final Widget? codeView;
+
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -107,6 +119,15 @@ class EntryRow extends StatelessWidget {
                     icon('Copy password', Icons.copy_outlined, onCopyPassword),
                     icon('Copy username', Icons.person_outline,
                         entry.username.isEmpty ? null : onCopyUsername),
+                    // TOTP codes: one icon that adds the two-factor secret,
+                    // or removes it once the entry has one.
+                    icon(
+                      entry.hasTotp
+                          ? 'Remove two-factor code'
+                          : 'Add two-factor code',
+                      entry.hasTotp ? Icons.shield : Icons.shield_outlined,
+                      entry.hasTotp ? onRemoveCode : onAddCode,
+                    ),
                     icon('Delete', Icons.delete_outline, onDelete),
                   ],
                 ],
@@ -121,6 +142,14 @@ class EntryRow extends StatelessWidget {
                     entry.password,
                     style: mono.copyWith(fontSize: FontSizes.title),
                   ),
+                ),
+              // TOTP codes: the live code and its countdown, lined up under
+              // the name like the shown password.
+              if (codeView != null)
+                Padding(
+                  padding: const EdgeInsets.only(
+                      left: 30 + Space.x1 + Space.half, top: Space.half),
+                  child: codeView,
                 ),
             ],
           ),

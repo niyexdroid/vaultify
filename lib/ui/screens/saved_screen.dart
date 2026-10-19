@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/settings.dart';
+import '../../core/totp/totp.dart';
 import '../../core/vault/entry.dart';
 import '../providers.dart';
 import '../session.dart';
@@ -12,6 +13,8 @@ import '../theme.dart';
 import '../vault_entries.dart';
 import '../widgets/entry_row.dart';
 import '../widgets/status_line.dart';
+import '../widgets/totp_code.dart';
+import 'totp_add_screen.dart';
 
 /// Search: the search field's focus, shared so Ctrl/Cmd+F can jump to it.
 final savedSearchFocusProvider = Provider<FocusNode>((ref) {
@@ -68,6 +71,72 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
     await ref.read(clipboardGuardProvider).copyPassword(password,
         ref.read(sessionProvider).requireValue.settings.clipboardClearSeconds);
     _toast('Password copied');
+  }
+
+  // Copy code (TOTP): the code showing right now, cleared from the
+  // clipboard on the same timer as a password.
+  Future<void> _copyCodeText(String code) async {
+    await ref.read(clipboardGuardProvider).copyPassword(code,
+        ref.read(sessionProvider).requireValue.settings.clipboardClearSeconds);
+    _toast('Code copied');
+  }
+
+  // Copy code (TOTP), from the mobile sheet: works out the code showing
+  // right now, then copies it.
+  Future<void> _copyCode(Entry e) async {
+    final secret = e.totp;
+    if (secret == null) return;
+    final code = await totpCode(secret, ref.read(clockProvider)());
+    if (!mounted) return;
+    await _copyCodeText(code);
+  }
+
+  // Add two-factor code: the add page reads a QR code or a pasted link,
+  // then the secret is saved on the entry.
+  Future<void> _addCode(Entry e) async {
+    final secret = await Navigator.push<TotpSecret>(
+      context,
+      MaterialPageRoute(builder: (_) => TotpAddScreen(entryName: e.name)),
+    );
+    if (secret == null || !mounted) return;
+    try {
+      await ref.read(vaultEntriesProvider.notifier).setTotp(e.id, secret);
+      _toast('Two-factor code added');
+    } catch (_) {
+      _toast("Couldn't save the code. Try again.");
+    }
+  }
+
+  // Remove two-factor code: asks first, because the secret is only kept
+  // here and the website would have to be set up again.
+  Future<void> _removeCode(Entry e) async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove the two-factor code for ${e.name}?'),
+        content: const Text(
+            "The password stays. You'll need the website's QR code or setup "
+            'key to add the code again.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: context.colors.weak),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
+    try {
+      await ref.read(vaultEntriesProvider.notifier).setTotp(e.id, null);
+      _toast('Two-factor code removed');
+    } catch (_) {
+      _toast("Couldn't remove the code. Try again.");
+    }
   }
 
   // Copy username: not secret, so it stays on the clipboard.
@@ -154,6 +223,23 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               title: const Text('Copy username'),
               onTap: () => Navigator.pop(context, _RowAction.copyUsername),
             ),
+            // TOTP codes: copy the live code, and add or remove the secret.
+            if (e.hasTotp)
+              ListTile(
+                leading: const Icon(Icons.pin_outlined),
+                title: const Text('Copy code'),
+                onTap: () => Navigator.pop(context, _RowAction.copyCode),
+              ),
+            ListTile(
+              leading: Icon(
+                  e.hasTotp ? Icons.shield : Icons.shield_outlined),
+              title: Text(e.hasTotp
+                  ? 'Remove two-factor code'
+                  : 'Add two-factor code'),
+              onTap: () => Navigator.pop(
+                  context, e.hasTotp ? _RowAction.removeCode
+                      : _RowAction.addCode),
+            ),
             ListTile(
               iconColor: c.weak,
               textColor: c.weak,
@@ -173,6 +259,12 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
         await _copyPassword(e.password);
       case _RowAction.copyUsername:
         await _copyUsername(e.username);
+      case _RowAction.copyCode:
+        await _copyCode(e);
+      case _RowAction.addCode:
+        await _addCode(e);
+      case _RowAction.removeCode:
+        await _removeCode(e);
       case _RowAction.delete:
         await _delete(e);
       case null:
@@ -279,6 +371,17 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
                       onCopyPassword: () => _copyPassword(e.password),
                       onCopyUsername: () => _copyUsername(e.username),
                       onDelete: () => _delete(e),
+                      onAddCode: () => _addCode(e),
+                      onRemoveCode: () => _removeCode(e),
+                      // TOTP codes: the live code line, only for entries
+                      // that have a two-factor secret.
+                      codeView: e.totp == null
+                          ? null
+                          : TotpCodeView(
+                              secret: e.totp!,
+                              mobile: mobile,
+                              onCopy: _copyCodeText,
+                            ),
                       // Mobile: tap opens the actions sheet, long-press
                       // copies the password.
                       onTap: mobile ? () => _openSheet(e) : null,
@@ -297,7 +400,15 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
 }
 
 /// Mobile row actions: what was picked in the bottom sheet.
-enum _RowAction { show, copyPassword, copyUsername, delete }
+enum _RowAction {
+  show,
+  copyPassword,
+  copyUsername,
+  copyCode,
+  addCode,
+  removeCode,
+  delete,
+}
 
 /// Saved list sort: label shown in the sort menu.
 String _sortLabel(SortOrder o) => switch (o) {

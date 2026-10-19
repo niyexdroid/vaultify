@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vaultify/core/crypto/cipher.dart';
 import 'package:vaultify/core/crypto/kdf.dart';
 import 'package:vaultify/core/crypto/secure_random.dart';
+import 'package:vaultify/core/totp/base32.dart';
+import 'package:vaultify/core/totp/totp.dart';
 import 'package:vaultify/core/vault/entry.dart';
 import 'package:vaultify/core/vault/vault_file.dart';
 import 'package:vaultify/core/vault/vault_repository.dart';
@@ -343,6 +345,80 @@ void main() {
       await r.create(pin, UnlockType.pin);
       r.lock();
       await expectLater(r.importEntries([entry('A')]), throwsStateError);
+    });
+  });
+
+  // TOTP codes: adding and removing an entry's two-factor secret saves
+  // straight away, like every other change.
+  group('two-factor secret', () {
+    final secret = TotpSecret(
+        key: decodeBase32('GEZDGNBVGY3TQOJQ'), issuer: 'GitHub');
+
+    test('is saved on the entry and survives a reopen', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('GitHub'));
+      await r.setTotp(r.entries.single.id, secret);
+      expect(r.entries.single.totp!.key, secret.key);
+
+      final reopened = repo();
+      await reopened.unlock(pin);
+      expect(reopened.entries.single.totp!.key, secret.key);
+      expect(reopened.entries.single.totp!.issuer, 'GitHub');
+    });
+
+    test('removing it saves the entry without one', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('GitHub'));
+      final id = r.entries.single.id;
+      await r.setTotp(id, secret);
+      await r.setTotp(id, null);
+      expect(r.entries.single.hasTotp, isFalse);
+
+      final reopened = repo();
+      await reopened.unlock(pin);
+      expect(reopened.entries.single.hasTotp, isFalse);
+    });
+
+    test('leaves other entries alone and ignores an unknown id', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('GitHub'));
+      await r.add(entry('Gmail'));
+      await r.setTotp(r.entries.first.id, secret);
+      expect(r.entries.last.hasTotp, isFalse);
+
+      final before = await r.vaultFile.readAsString();
+      await r.setTotp('not-an-id', secret);
+      expect(await r.vaultFile.readAsString(), before);
+    });
+
+    test('the key is never in the vault file in plain text', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('GitHub'));
+      await r.setTotp(r.entries.single.id, secret);
+      final text = await r.vaultFile.readAsString();
+      expect(text, isNot(contains('GEZDGNBVGY3TQOJQ')));
+      expect(text, isNot(contains('GitHub')));
+    });
+
+    test('a replaced password keeps the two-factor secret', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      await r.add(entry('GitHub', 'old-password'));
+      await r.setTotp(r.entries.single.id, secret);
+      await r.replaceByName(entry('GitHub', 'new-password'));
+      expect(r.entries.single.password, 'new-password');
+      expect(r.entries.single.totp!.key, secret.key);
+    });
+
+    test('needs an unlocked vault', () async {
+      final r = repo();
+      await r.create(pin, UnlockType.pin);
+      r.lock();
+      await expectLater(r.setTotp('any', secret), throwsStateError);
     });
   });
 }

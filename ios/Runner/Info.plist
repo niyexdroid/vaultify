@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Vaultify uses the camera only to scan a two-factor QR code. Nothing is recorded or sent anywhere.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Vaultify uses Face ID to unlock your vault.</string>
 	<key>UIApplicationSceneManifest</key>
