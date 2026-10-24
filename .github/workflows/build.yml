@@ -60,7 +60,11 @@ jobs:
   windows:
     name: Windows installer
     needs: [checks, version]
-    runs-on: windows-latest
+    # Pinned to the 2022 image on purpose: windows-latest now ships MSVC 14.51,
+    # whose toolchain rejects <experimental/coroutine> (STL1011 / C2338), and the
+    # local_auth_windows plugin still includes that header. Vaultify's own code
+    # builds on either image. Drop the pin once local_auth_windows is updated.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
