@@ -55,8 +55,8 @@ jobs:
             echo "args=" >> "$GITHUB_OUTPUT"
           fi
 
-  # Windows installer: Vaultify-Setup.exe, packed by the Inno Setup script in
-  # windows/packaging/vaultify.iss.
+  # Windows installer: Vaultify-<version>-Setup.exe, packed by the Inno Setup
+  # script in windows/packaging/vaultify.iss.
   windows:
     name: Windows installer
     needs: [checks, version]
@@ -92,10 +92,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: build/installer/Vaultify-Setup.exe
+          path: build/installer/Vaultify-${{ needs.version.outputs.name }}-Setup.exe
           if-no-files-found: error
 
-  # macOS disk image: Vaultify.dmg, a plain drag-to-Applications image. It is
+  # macOS disk image: Vaultify-<version>.dmg, a drag-to-Applications image. It is
   # unsigned until there is an Apple Developer account, so the first open needs
   # right-click > Open; see README.
   macos:
@@ -119,11 +119,11 @@ jobs:
           mkdir -p "$staging"
           cp -R build/macos/Build/Products/Release/Vaultify.app "$staging/"
           ln -s /Applications "$staging/Applications"
-          hdiutil create -volname Vaultify -srcfolder "$staging" -ov -format UDZO build/Vaultify.dmg
+          hdiutil create -volname Vaultify -srcfolder "$staging" -ov -format UDZO "build/Vaultify-${{ needs.version.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: build/Vaultify.dmg
+          path: build/Vaultify-${{ needs.version.outputs.name }}.dmg
           if-no-files-found: error
 
   # Android packages: .aab for the Play Store and .apk for direct sharing.
@@ -203,11 +203,11 @@ jobs:
         run: |
           mkdir -p build/release
           cd build/ios/iphoneos
-          zip -r -q "$GITHUB_WORKSPACE/build/release/Vaultify-ios-unsigned.zip" Runner.app
+          zip -r -q "$GITHUB_WORKSPACE/build/release/Vaultify-${{ needs.version.outputs.name }}-ios-unsigned.zip" Runner.app
       - uses: actions/upload-artifact@v4
         with:
           name: ios-unsigned
-          path: build/release/Vaultify-ios-unsigned.zip
+          path: build/release/Vaultify-${{ needs.version.outputs.name }}-ios-unsigned.zip
           if-no-files-found: error
 
   # Release page: collects the four platforms' files and attaches them to a

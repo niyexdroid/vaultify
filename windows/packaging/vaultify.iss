@@ -1,6 +1,6 @@
 ; Windows installer: Inno Setup script that packs the release build into
-; Vaultify-Setup.exe. Built by .github/workflows/build.yml on a version tag,
-; or locally with:
+; Vaultify-<version>-Setup.exe. Built by .github/workflows/build.yml on a
+; version tag, or locally with:
 ;   flutter build windows --release
 ;   iscc windows\packaging\vaultify.iss /DAppVersion=1.0.0
 
@@ -30,7 +30,7 @@ DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#AppExeName}
 OutputDir=..\..\build\installer
-OutputBaseFilename=Vaultify-Setup
+OutputBaseFilename=Vaultify-{#AppVersion}-Setup
 SetupIconFile=..\runner\resources\app_icon.ico
 Compression=lzma2
 SolidCompression=yes

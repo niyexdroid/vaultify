@@ -42,11 +42,11 @@ What comes out:
 
 | Platform | File | Notes |
 | --- | --- | --- |
-| Windows | `Vaultify-Setup.exe` | Inno Setup installer, per-user by default |
-| macOS | `Vaultify.dmg` | Drag to Applications |
+| Windows | `Vaultify-<version>-Setup.exe` | Inno Setup installer, per-user by default |
+| macOS | `Vaultify-<version>.dmg` | Drag to Applications |
 | Android | `Vaultify-<version>.apk` | Direct install and sharing |
 | Android | `Vaultify-<version>.aab` | Play Store upload |
-| iOS | `Vaultify-ios-unsigned.zip` | Unsigned build; not installable as is |
+| iOS | `Vaultify-<version>-ios-unsigned.zip` | Unsigned build; not installable as is |
 
 The Actions tab can also run the workflow by hand ("Build" > Run workflow),
 which produces the same files as downloadable artifacts without making a
@@ -59,7 +59,7 @@ Needs [Inno Setup 6](https://jrsoftware.org/isdl.php):
 ```bash
 flutter build windows --release
 iscc windows/packaging/vaultify.iss /DAppVersion=1.0.0
-# writes build/installer/Vaultify-Setup.exe
+# writes build/installer/Vaultify-1.0.0-Setup.exe
 ```
 
 ### Signing
