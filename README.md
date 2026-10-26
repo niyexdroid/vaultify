@@ -6,6 +6,28 @@ never leaves the device: no network access, no analytics, no crash reporting.
 
 `SPEC.md` is the source of truth for what the app does and how it is built.
 
+## Installing
+
+Downloads: **<https://niyexdroid.github.io/vaultify/>** (or the
+[latest release](https://github.com/niyexdroid/vaultify/releases/latest)).
+
+| Platform | File | Status |
+| --- | --- | --- |
+| Windows 10 / 11 | `Vaultify-<version>-Setup.exe` | Supported; installs per-user, no admin needed |
+| Android 10+ | `Vaultify-<version>.apk` | Supported; install the APK directly |
+| macOS | `Vaultify-<version>.dmg` | Preview: unsigned, not yet tested on a Mac |
+| iOS | `Vaultify-<version>-ios-unsigned.zip` | Preview: unsigned, not installable as is |
+
+Nothing is code-signed yet, so the first install shows a warning:
+
+- **Windows:** SmartScreen says the publisher is unknown. **More info** then
+  **Run anyway**.
+- **Android:** allow installs from your browser or file manager when prompted,
+  because the APK is not from the Play Store.
+
+Store plans, signing options and the Play Store requirements are in
+[PUBLISHING.md](PUBLISHING.md).
+
 ## Developing
 
 ```bash
@@ -110,6 +132,16 @@ says so in the log.
 
 ### Still to prepare for the stores
 
-A privacy policy page stating that Vaultify collects no data, phone-sized
-screenshots, the App Store privacy label ("Data not collected") and the Google
-Play Data safety form (nothing collected or shared).
+Done: the privacy policy page, at
+<https://niyexdroid.github.io/vaultify/privacy.html> (source in `docs/`).
+
+Outstanding: phone-sized screenshots, the App Store privacy label ("Data not
+collected"), the Google Play Data safety form (nothing collected or shared) and
+the Android upload key. [PUBLISHING.md](PUBLISHING.md) tracks all of it,
+including the Play Store's 12-tester closed-testing requirement, which takes
+at least two weeks.
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE). Vaultify is open source so that
+anyone can verify the claims it makes about handling your passwords.

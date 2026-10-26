@@ -1,0 +1,96 @@
+/* Download site: shared styles for the GitHub Pages pages in docs/.
+   Plain CSS on purpose - the site is two static files with no build step. */
+
+/* Theme tokens: light values first, dark overridden below. */
+:root {
+  --bg: #f7f7f8;
+  --panel: #ffffff;
+  --ink: #1b1b1f;
+  --ink-soft: #55555f;
+  --line: #e2e2e6;
+  --accent: #3a5bd9;
+  --accent-ink: #ffffff;
+  --warn-bg: #fff7e6;
+  --warn-line: #f0d9a8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15151a;
+    --panel: #1e1e25;
+    --ink: #ececf1;
+    --ink-soft: #a3a3b0;
+    --line: #32323c;
+    --accent: #8ba4ff;
+    --accent-ink: #15151a;
+    --warn-bg: #2a2317;
+    --warn-line: #50411f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 16px 64px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+main { max-width: 760px; margin: 0 auto; }
+
+/* Masthead: app name and one-line description. */
+header.masthead { padding: 56px 0 8px; }
+header.masthead h1 { margin: 0; font-size: 2.4rem; letter-spacing: -0.02em; }
+header.masthead p.tagline { margin: 8px 0 0; color: var(--ink-soft); font-size: 1.15rem; }
+
+h2 { margin: 40px 0 12px; font-size: 1.3rem; }
+h3 { margin: 28px 0 8px; font-size: 1.05rem; }
+p, li { color: var(--ink); }
+a { color: var(--accent); }
+
+/* Download buttons: one per platform people can actually install today. */
+.downloads { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 8px; }
+.btn {
+  display: inline-block;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn.secondary {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+/* Cards and tables for the platform and privacy details. */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+.note {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+code {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 0.9em;
+}
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.9rem; }
+footer a { color: var(--ink-soft); }

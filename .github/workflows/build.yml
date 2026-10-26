@@ -231,7 +231,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ls -R files
+          # Release notes live in .github/release-notes.md so they can be reviewed
+          # in a pull request and stay the same for every release.
           gh release create "$GITHUB_REF_NAME" --draft \
             --title "Vaultify ${{ needs.version.outputs.name }}" \
-            --notes "Offline password generator and keeper. Downloads: Windows installer, macOS disk image, Android APK for direct install, Android AAB for the Play Store, and an unsigned iOS build." \
+            --notes-file .github/release-notes.md \
             files/*

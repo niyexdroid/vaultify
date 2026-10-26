@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaultify — privacy policy</title>
+<meta name="description" content="Vaultify collects no data. It has no servers and no internet access. This policy explains what stays on your device and why.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+  <header class="masthead">
+    <h1>Privacy policy</h1>
+    <p class="tagline">Vaultify collects no data about you. There is no server to send it to.</p>
+  </header>
+
+  <p><strong>Last updated:</strong> 26 October 2026 · Applies to Vaultify on Windows, macOS, Android and iOS.</p>
+
+  <h2>The short version</h2>
+
+  <div class="card">
+    <p>Vaultify is an offline app. It has no accounts, no sync, no analytics, no
+    advertising and no crash reporting. Nothing you type into it leaves your device.
+    No one, including the developer, can read your vault.</p>
+  </div>
+
+  <h2>What data Vaultify collects</h2>
+
+  <p>None. Vaultify does not collect, transmit or share any personal data. There is no
+  server component, so there is nowhere for data to go.</p>
+
+  <p>This is enforced by the app's design rather than by promise: the Android release
+  build does not request the <code>INTERNET</code> permission, so the operating system
+  will not let it open a network connection at all. The source code contains no
+  networking code, and anyone can verify both claims in the
+  <a href="https://github.com/niyexdroid/vaultify">public repository</a>.</p>
+
+  <h2>What is stored on your device, and where</h2>
+
+  <table>
+    <tr><th>What</th><th>Where it is kept</th></tr>
+    <tr>
+      <td>Your vault: saved names, passwords, and any two-factor keys</td>
+      <td>One encrypted file in Vaultify's private storage area on your device</td>
+    </tr>
+    <tr>
+      <td>Your preferences: theme, auto-lock delay, generator defaults</td>
+      <td>The operating system's normal settings storage for the app</td>
+    </tr>
+    <tr>
+      <td>Your PIN or password</td>
+      <td>Nowhere. It is never saved — only used to derive the key that opens the vault</td>
+    </tr>
+  </table>
+
+  <p>The vault is encrypted with AES-GCM, using a key derived from your PIN or password
+  with Argon2id. Because your PIN is never stored, a copy of the vault file is useless
+  without it — and so is a vault whose file has been altered, which fails its integrity
+  check instead of opening.</p>
+
+  <h2>Permissions, and why each one exists</h2>
+
+  <table>
+    <tr><th>Permission</th><th>Why</th></tr>
+    <tr>
+      <td>Camera (Android and iOS only, optional)</td>
+      <td>Only to scan a two-factor QR code when you choose to add one. Scanning happens
+      entirely on the device; no image is saved, uploaded or sent anywhere. Declining the
+      permission only means you paste the key by hand instead.</td>
+    </tr>
+    <tr>
+      <td>Biometrics / Face ID (mobile, optional)</td>
+      <td>To unlock the app with your fingerprint or face instead of typing your PIN. Your
+      biometric data is handled entirely by the operating system; Vaultify never sees it
+      and only receives a yes or no answer.</td>
+    </tr>
+  </table>
+
+  <p>Vaultify asks for no other permissions: no contacts, no location, no files, no
+  internet.</p>
+
+  <h2>Clipboard</h2>
+
+  <p>When you copy a password or two-factor code, it goes to your device's clipboard so
+  you can paste it. Vaultify clears the clipboard after a short delay, and on Android
+  marks the content sensitive so it is kept out of clipboard previews and history.
+  While it is on the clipboard, other apps on your device may be able to read it — this
+  is how clipboards work on every operating system, so paste it promptly.</p>
+
+  <h2>Backups you create</h2>
+
+  <p>The export feature writes an encrypted backup file to a location you pick. That file
+  is encrypted the same way as the vault, but once it leaves the app it is in your hands:
+  if you store it in a cloud folder or email it to yourself, that service then holds the
+  file. It stays unreadable without your password.</p>
+
+  <h2>Children</h2>
+
+  <p>Vaultify is a general-purpose utility, contains no advertising and collects nothing,
+  so it is suitable for all ages and poses no specific risk to children.</p>
+
+  <h2>Your rights</h2>
+
+  <p>Rights such as access, correction, export and deletion normally require asking a
+  company to act on data it holds about you. Vaultify holds none: your data is on your
+  device, under your control. You can export it at any time from inside the app, and
+  uninstalling Vaultify removes its vault and settings from the device.</p>
+
+  <h2>Changes to this policy</h2>
+
+  <p>If this policy changes, the updated version will be published on this page with a new
+  date above, and the change will be visible in the repository's commit history.</p>
+
+  <h2>Contact</h2>
+
+  <p>Questions or concerns about privacy can be raised as an issue in the
+  <a href="https://github.com/niyexdroid/vaultify/issues">GitHub repository</a>.</p>
+
+  <footer>
+    <p><a href="index.html">&larr; Back to downloads</a> ·
+    Vaultify is free and open source under the Apache License 2.0</p>
+  </footer>
+
+</main>
+</body>
+</html>
