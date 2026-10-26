@@ -349,10 +349,11 @@ Build in this order, one milestone per Claude Code session; each ends with a don
 8. **Polish.** App icons, window size memory, empty states, toasts, accessibility labels on icon buttons, final pass against the UI design section. *Done when:* the full acceptance checklist passes on at least one desktop and one phone.
 9. **TOTP codes.** Store a TOTP secret on an entry, show the live 6-digit code with its countdown, copy it, and add a secret by scanning a QR code on the phone or by pasting an `otpauth://` link or key on any platform. *Done when:* a code Vaultify shows matches the one another authenticator app shows for the same account at the same moment.
 10. **Packaging and CI.** GitHub Actions builds Windows installer, macOS DMG, Android AAB/APK and iOS build on a version tag. *Done when:* a tag produces downloadable files for all four platforms.
+11. **Google Drive backup (post-v1, not in v1).** Opt-in, off by default. Uploads only the *already encrypted* vault blob to the Drive `appDataFolder`, a private per-app folder; the master password and keys never leave the device, so Google holds a file it cannot read. Needs a written security design before any code, because it adds the INTERNET permission app-wide, rewrites `docs/privacy.html` and changes the Play Data safety answers from "collects nothing". Open questions to settle in that design: Google OAuth verification for Drive scopes, a desktop OAuth flow for Windows and macOS, conflict handling when two devices both changed, and what restore does to a vault that already has entries. *Done when:* a vault backed up on one device restores on a second device, the uploaded file is unreadable without the master password, and the privacy page and store answers match what the app actually does.
 
 ## Testing and acceptance
 
-v1 ships when every item passes on Windows 11, macOS 14, one Android phone (Android 13+) and one iPhone (iOS 17+).
+v1 ships on **Windows 11 and one Android phone (Android 13+)**: every item below must pass on both. macOS and iOS builds are produced by CI and published as **unsigned previews** — they are not part of the v1 done-check, because signing them needs a paid Apple account. When that account exists, macOS 14 and iOS 17+ run the same checklist and get promoted from preview to supported. *(Amended 2026-10-26; the original wording required all four platforms.)*
 
 **Setup and unlock**
 
@@ -435,18 +436,22 @@ Android and Windows can be shared cheaply right away; iOS needs a paid Apple acc
 5. Recently generated history
 6. Exclude look-alike characters (`0 O l 1 I`)
 7. Old-password warning (over a year)
-8. Optional sync between devices (needs its own security design)
+8. Optional sync or cloud backup between devices (needs its own security design — see milestone 11)
 9. Linux build; autofill on Android and iOS
 
 **Decided 2026-10-16:** TOTP codes are now milestone 9 (after Polish). Secrets can be added by QR scan on phones, which will need a camera package and camera permission — to be confirmed when that milestone starts.
 
 **Decided 2026-10-17:** the camera package is `mobile_scanner`, on Android and iOS only. It reads QR codes on the phone itself, so the app stays offline; `CAMERA` permission and `NSCameraUsageDescription` say it is used only to scan a two-factor QR code. Desktop has no scanner and pastes the `otpauth://` link or key instead.
 
+**Decided 2026-10-26:** v1 ships as **Windows + Android supported, macOS + iOS as unsigned previews** (see Testing and acceptance). Distribution starts with **direct downloads** — the GitHub Pages site in `docs/` plus GitHub Releases — rather than paying for store and signing accounts first. Google Play comes later: a personal developer account created after 2023-11-13 must run a closed test with 12+ testers for 14 continuous days before it can apply for production, and Android release builds still need a real upload keystore. Windows code signing waits too, because SignPath Foundation's free certificate requires an OSI licence (now Apache-2.0) *and* an already-published release.
+
+**Decided 2026-10-26:** Google Drive backup is **milestone 11, after v1**, not part of it. Until then the answer for moving a vault between devices is the existing encrypted export/import: export the file, move it however you like (including putting it in Drive by hand), import it on the other device. That gets the same result with no network code and no change to the privacy policy.
+
 **Open decisions**
 
 - [ ] Check that the name "Vaultify" and a domain like vaultify.app are free, and that no store app already uses it
-- [ ] Pay for signing and store accounts now, or share Android APK and Windows installer first?
+- [x] Pay for signing and store accounts now, or share Android APK and Windows installer first? — **share direct downloads first** (2026-10-26)
 - [ ] Minimum PIN length: 6 or 8 digits
-- [ ] Where the download page lives: GitHub Releases or a simple website
+- [x] Where the download page lives: GitHub Releases or a simple website — **both: the `docs/` GitHub Pages site links to GitHub Releases** (2026-10-26)
 
 The earlier PassKeeper/Vaultify product spec used Python for desktop only; this brief replaces it as the source of truth now that mobile is in scope.
