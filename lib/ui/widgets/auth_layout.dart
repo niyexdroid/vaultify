@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../brand/vaultify_mark.dart';
 import '../theme.dart';
 
-/// Unlock and setup layout: centred column with the shield icon and one
+/// Unlock and setup layout: centred column with the brand mark and one
 /// heading, as in SPEC.md "Unlock and setup screens". Scrolls on short
 /// screens so the number pad never overflows.
 class AuthLayout extends StatelessWidget {
@@ -35,7 +36,8 @@ class AuthLayout extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.shield_outlined, size: 48, color: c.primary),
+                  // Brand mark: the V-monogram, matching the app icon.
+                  VaultifyMark(size: 56, color: c.primary),
                   const SizedBox(height: Space.x2),
                   Text(
                     heading,

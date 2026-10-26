@@ -40,8 +40,11 @@ void main() {
 
   _captureViewfinder();
 
-  // Desktop window at its default size, and a typical phone.
+  // Desktop window at its default size, a maximised desktop window, and a
+  // typical phone. The wide size is captured because the window is resizable:
+  // layouts that look right at 420 can stretch badly at 1280.
   const desktop = Size(420, 680);
+  const desktopWide = Size(1280, 800);
   const phone = Size(390, 844);
 
   for (final dark in [false, true]) {
@@ -62,6 +65,23 @@ void main() {
       await tester.tap(find.text('Options'));
       await tester.pumpAndSettle();
       await _shot(tester, 'desktop-options-$suffix');
+    });
+
+    // Wide window: checks the generator, saved list and unlock screen do not
+    // stretch across a maximised desktop window.
+    testWidgets('wide desktop window ($suffix)', (tester) async {
+      await _sized(tester, desktopWide, dark);
+      final repo = FakeVaultRepository(secret: '123456')
+        ..saved.addAll(_sampleEntries());
+      await pumpVaultify(tester, repo: repo);
+      await _shot(tester, 'wide-unlock-$suffix');
+
+      await _unlock(tester, mobile: false);
+      await _shot(tester, 'wide-generator-$suffix');
+
+      await tester.tap(find.text('Saved'));
+      await tester.pumpAndSettle();
+      await _shot(tester, 'wide-saved-$suffix');
     });
 
     testWidgets('unlock screen ($suffix)', (tester) async {

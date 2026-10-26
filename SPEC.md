@@ -233,8 +233,8 @@ The approved look is small, calm and clean: white or near-black surfaces, one gr
 **Window and layout sizes**
 
 - Desktop window: 420 × 680 by default, minimum 380 × 560, remembers size and position.
-- Mobile: full screen, content width capped at 600 and centred on tablets.
-- App icon: white shield with a keyhole on a green rounded square.
+- Mobile: full screen, content width capped at 600 and centred on tablets. The same 600 cap is applied on desktop (`ContentWidth`), so a maximised window does not stretch the fields.
+- App icon and brand mark: a white V-monogram shield with a keyhole on a green rounded square. The shape is defined once in `lib/ui/brand/vaultify_mark.dart` and reused by the app icon, the title bar, the unlock screen and the download site. *(Changed 2026-10-26 from a plain shield.)*
 
 ## Data model and storage
 

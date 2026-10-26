@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../brand/vaultify_mark.dart';
 import '../screens/generator_screen.dart';
 import '../screens/options_screen.dart';
 import '../screens/saved_screen.dart';
 import '../session.dart';
 import '../theme.dart';
+import '../widgets/content_width.dart';
 
 /// App areas: Generator, Saved and Options, in tab / bottom-bar order.
 enum AppArea {
@@ -43,14 +45,20 @@ class AreaStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Content width cap: applied once here so all three areas are centred and
+    // never stretch across a maximised desktop window.
     return IndexedStack(
       index: current.index,
-      children: const [GeneratorScreen(), SavedScreen(), OptionsScreen()],
+      children: const [
+        ContentWidth(child: GeneratorScreen()),
+        ContentWidth(child: SavedScreen()),
+        ContentWidth(child: OptionsScreen()),
+      ],
     );
   }
 }
 
-/// Title bar: green shield-lock icon + "Vaultify", Lock button on the right.
+/// Title bar: green V-monogram mark + "Vaultify", Lock button on the right.
 /// [bottom] holds the desktop tabs.
 class VaultifyTitleBar extends ConsumerWidget implements PreferredSizeWidget {
   const VaultifyTitleBar({super.key, this.bottom});
@@ -67,7 +75,8 @@ class VaultifyTitleBar extends ConsumerWidget implements PreferredSizeWidget {
     return AppBar(
       title: Row(
         children: [
-          Icon(Icons.shield_outlined, color: c.primary),
+          // Brand mark: the V-monogram, matching the app icon.
+          VaultifyMark(size: 26, color: c.primary),
           const SizedBox(width: Space.x1),
           const Text('Vaultify'),
         ],

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../generator_controller.dart';
 import '../screens/saved_screen.dart';
 import '../session.dart';
+import '../widgets/content_width.dart';
 import 'shell_parts.dart';
 
 /// Desktop shell (Windows, macOS): title bar with tabs under it.
@@ -78,9 +79,16 @@ class _DesktopShellState extends ConsumerState<DesktopShell>
         autofocus: true,
         child: Scaffold(
           appBar: VaultifyTitleBar(
-            bottom: TabBar(
-              controller: _tabs,
-              tabs: [for (final a in AppArea.values) Tab(text: a.label)],
+            // Tabs sit over the content, so they share its width cap rather
+            // than spreading across a maximised window.
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(kTextTabBarHeight),
+              child: ContentWidth(
+                child: TabBar(
+                  controller: _tabs,
+                  tabs: [for (final a in AppArea.values) Tab(text: a.label)],
+                ),
+              ),
             ),
           ),
           body: AreaStack(current: area),
