@@ -97,7 +97,13 @@ Nothing is signed yet, which is fine for sharing directly but not for the
 stores. Until certificates are bought:
 
 - **Windows:** the installer runs, but SmartScreen warns on first download.
-  A code-signing certificate removes that.
+  Free open-source signing by [SignPath Foundation](https://signpath.org/) is the
+  plan, and the workflow's signing step is already in place — it stays dormant
+  until the `SIGNPATH_API_TOKEN` and `SIGNPATH_ORGANIZATION_ID` secrets exist.
+  SignPath requires a published code signing policy, which is `docs/signing.html`
+  on the download site. Until a certificate is granted, each release's notes carry
+  the **SHA-256** of every file so a download can be checked. `PUBLISHING.md` has
+  the application details.
 - **macOS:** the first open needs right-click > Open, because the app is not
   notarized. An Apple Developer account ($99/year) fixes this and also covers
   iOS.

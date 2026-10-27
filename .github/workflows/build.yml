@@ -89,10 +89,65 @@ jobs:
             choco install innosetup -y --no-progress
           fi
           "$iscc" windows/packaging/vaultify.iss "/DAppVersion=${{ needs.version.outputs.name }}"
+
+      # Signing input: SignPath reads the installer from a GitHub artifact, so the
+      # unsigned file is uploaded first. This artifact is a build-time stepping
+      # stone; the release job only collects the dist-* artifacts.
+      - name: Upload the unsigned installer
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-windows-installer
+          path: build/installer/Vaultify-${{ needs.version.outputs.name }}-Setup.exe
+          if-no-files-found: error
+
+      # Secrets cannot be read in a step-level "if", so the check becomes an output.
+      - name: Is there a signing certificate?
+        id: signing
+        shell: bash
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          if [ -n "$SIGNPATH_API_TOKEN" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No SIGNPATH_API_TOKEN secret set: shipping the installer unsigned."
+            echo "have=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Windows code signing: free open-source signing by SignPath Foundation.
+      # Dormant until the certificate is granted and the two secrets are added;
+      # see PUBLISHING.md and docs/signing.html.
+      - name: Sign the installer
+        if: steps.signing.outputs.have == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: vaultify
+          signing-policy-slug: release-signing
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: build/signed
+
+      # Whichever installer exists wins: the signed one if signing ran, the
+      # unsigned one otherwise. The published filename is the same either way.
+      - name: Collect the installer to publish
+        shell: bash
+        run: |
+          mkdir -p build/dist
+          exe="Vaultify-${{ needs.version.outputs.name }}-Setup.exe"
+          if [ -f "build/signed/$exe" ]; then
+            echo "Publishing the signed installer."
+            cp "build/signed/$exe" "build/dist/$exe"
+          else
+            cp "build/installer/$exe" "build/dist/$exe"
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
-          path: build/installer/Vaultify-${{ needs.version.outputs.name }}-Setup.exe
+          name: dist-windows
+          path: build/dist/Vaultify-${{ needs.version.outputs.name }}-Setup.exe
           if-no-files-found: error
 
   # macOS disk image: Vaultify-<version>.dmg, a drag-to-Applications image. It is
@@ -122,7 +177,7 @@ jobs:
           hdiutil create -volname Vaultify -srcfolder "$staging" -ov -format UDZO "build/Vaultify-${{ needs.version.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-dmg
+          name: dist-macos
           path: build/Vaultify-${{ needs.version.outputs.name }}.dmg
           if-no-files-found: error
 
@@ -178,7 +233,7 @@ jobs:
         run: rm -f android/key.properties android/upload-keystore.jks
       - uses: actions/upload-artifact@v4
         with:
-          name: android
+          name: dist-android
           path: build/release/*
           if-no-files-found: error
 
@@ -206,7 +261,7 @@ jobs:
           zip -r -q "$GITHUB_WORKSPACE/build/release/Vaultify-${{ needs.version.outputs.name }}-ios-unsigned.zip" Runner.app
       - uses: actions/upload-artifact@v4
         with:
-          name: ios-unsigned
+          name: dist-ios
           path: build/release/Vaultify-${{ needs.version.outputs.name }}-ios-unsigned.zip
           if-no-files-found: error
 
@@ -222,9 +277,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      # Only the dist-* artifacts are the files people download. The unsigned
+      # installer uploaded for SignPath is deliberately left behind.
       - uses: actions/download-artifact@v4
         with:
           path: files
+          pattern: dist-*
           merge-multiple: true
       - name: Attach the files to a draft release
         env:
@@ -232,8 +290,28 @@ jobs:
         run: |
           ls -R files
           # Release notes live in .github/release-notes.md so they can be reviewed
-          # in a pull request and stay the same for every release.
+          # in a pull request and stay the same for every release. The SHA-256 of
+          # each file is appended per release: while the installer is unsigned,
+          # comparing hashes is the only way a downloader can check what they got.
+          notes="$RUNNER_TEMP/release-notes.md"
+          cp .github/release-notes.md "$notes"
+          {
+            echo
+            echo "## Verifying your download"
+            echo
+            echo 'SHA-256 of each file in this release:'
+            echo
+            echo '```'
+            ( cd files && sha256sum * )
+            echo '```'
+            echo
+            echo 'Windows: `Get-FileHash .\<file> -Algorithm SHA256`.'
+            echo 'macOS or Linux: `shasum -a 256 <file>`.'
+            echo
+            echo 'How these files are built and who may sign them:'
+            echo '<https://niyexdroid.github.io/vaultify/signing.html>'
+          } >> "$notes"
           gh release create "$GITHUB_REF_NAME" --draft \
             --title "Vaultify ${{ needs.version.outputs.name }}" \
-            --notes-file .github/release-notes.md \
+            --notes-file "$notes" \
             files/*

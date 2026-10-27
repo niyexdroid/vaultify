@@ -102,24 +102,77 @@ currently sees. Options, cheapest first:
 | Option | Cost | Catch |
 | --- | --- | --- |
 | **SignPath Foundation** | Free | Open-source projects only, by application, at their discretion |
-| Azure Artifact Signing | about $9.99/month | Individuals only in the US and Canada |
+| Azure Trusted Signing | free at present, was $9.99/month | Individuals in the US and Canada only, so likely unavailable here; pricing has kept changing |
 | OV certificate | $150–300/year | Available anywhere |
 | EV certificate | $400+/year | No longer buys an instant SmartScreen pass, so rarely worth it |
 
 SignPath Foundation is the one to try first, now that Vaultify is Apache-2.0
-licensed. Their conditions require:
+licensed **and v1.0.0 is published** — being already released was the condition
+that blocked applying earlier. Their conditions require:
 
 - An OSI-approved license with no commercial dual-licensing — **done** (Apache-2.0)
 - No proprietary components beyond system libraries — true of Vaultify
 - An actively maintained project that is **already released** in the form to be
-  signed — so apply *after* the first public release, not before
+  signed — **done**, v1.0.0 published 2026-10-27
 - Builds produced by the project's own CI, from its own source — true; the
   workflow is public
-- Multi-factor authentication on the source repository — check this is on for
-  the GitHub account before applying
+- A **published code signing policy** on the project home page — **done**,
+  `docs/signing.html`, linked from the download page footer
+- Multi-factor authentication on the source repository — **check this is on for
+  the GitHub account before applying**; the application fails on this alone
 
-Note that no certificate makes the warning vanish immediately: SmartScreen
-reputation accumulates as a signed binary is downloaded over time.
+Note that the certificate is issued to **SignPath Foundation**, not to this
+project, so the Windows publisher name will read SignPath Foundation. And no
+certificate makes the warning vanish immediately: SmartScreen reputation
+accumulates as a signed binary is downloaded over time.
+
+### Applying
+
+Apply at <https://signpath.org/apply> (check the current URL from
+<https://signpath.org/>; the form moves). The facts it asks for:
+
+| Field | Answer |
+| --- | --- |
+| Project name | Vaultify |
+| Repository | <https://github.com/niyexdroid/vaultify> |
+| License | Apache-2.0 |
+| Home / download page | <https://niyexdroid.github.io/vaultify/> |
+| Code signing policy | <https://niyexdroid.github.io/vaultify/signing.html> |
+| Build system | GitHub Actions, `.github/workflows/build.yml`, public |
+| Artifact to sign | `Vaultify-<version>-Setup.exe` (Inno Setup installer) |
+| Maintainers | One: Adegbola Adeniyi (@niyexdroid), repository owner |
+
+Suggested description: *Vaultify is an offline password generator and keeper for
+Windows and Android, built from one Flutter codebase. The vault is encrypted with
+Argon2id and AES-GCM and never leaves the device: the app has no network access,
+no analytics and no crash reporting, and the Android release build is not granted
+internet permission. Released under Apache-2.0, built and released entirely by
+GitHub Actions from public source.*
+
+### Once the certificate is granted
+
+The workflow already has the signing step, dormant behind a secret check. Add two
+repository secrets and the next tag signs itself:
+
+| Secret | Value |
+| --- | --- |
+| `SIGNPATH_API_TOKEN` | The API token from the SignPath organisation |
+| `SIGNPATH_ORGANIZATION_ID` | The organisation ID shown in SignPath |
+
+Then check that the SignPath project slug is `vaultify` and the signing policy
+slug is `release-signing`, or change them in `build.yml` to match what SignPath
+actually created. With no token set, the Windows job prints that it is shipping
+unsigned and the release is produced exactly as it is today.
+
+When the first signed installer ships, update `docs/signing.html`: its "Current
+status: not signed yet" box and the download page's SmartScreen note both
+describe the unsigned state and will be wrong.
+
+### Meanwhile: SHA-256 hashes
+
+Every release's notes list the SHA-256 of each file, appended by the release job.
+That is the only verification available while the installer is unsigned, and it
+stays useful afterwards. `docs/signing.html` explains how to check one.
 
 ## Track 4: Apple (macOS and iOS)
 

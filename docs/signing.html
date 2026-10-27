@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaultify — code signing policy</title>
+<meta name="description" content="How Vaultify's Windows builds are produced, who may authorise a signature, and how to verify a download you have already made.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+  <header class="masthead">
+    <div class="wordmark">
+      <!-- Brand mark: the V-monogram. Kept in step with the one true shape in
+           lib/ui/brand/vaultify_mark.dart; change it there first. -->
+      <svg class="mark" viewBox="0 0 1024 1024" fill="currentColor" aria-hidden="true">
+        <path d="M236 300 C298 476 388 648 512 800 C636 648 726 476 788 300 L688 300 L512 630 L336 300 Z"/>
+        <circle cx="512" cy="420" r="70"/>
+        <path d="M487 466 L537 466 L548 532 L476 532 Z"/>
+      </svg>
+      <h1>Code signing policy</h1>
+    </div>
+    <p class="tagline">Who builds Vaultify, who may sign it, and how to check that the file you downloaded is the one that was built.</p>
+  </header>
+
+  <p><strong>Last updated:</strong> 27 October 2026 · Applies to the Vaultify
+  releases published at
+  <a href="https://github.com/niyexdroid/vaultify/releases">github.com/niyexdroid/vaultify/releases</a>.</p>
+
+  <!-- Current signing status: stated plainly, because an unsigned download is
+       exactly what an attacker would also tell you is "normal". -->
+  <div class="note">
+    <h3>Current status: not signed yet</h3>
+    <p>Vaultify's Windows installer is <strong>not code-signed at the time of
+    writing</strong>, so Windows SmartScreen reports an unknown publisher. An
+    application for free open-source signing through
+    <a href="https://signpath.org/">SignPath Foundation</a> is in progress. Until
+    it is granted, the only way to confirm a download is the
+    <a href="#verify">SHA-256 check</a> below.</p>
+  </div>
+
+  <h2>Who produces the builds</h2>
+
+  <div class="card">
+    <p>Every published file is built by <strong>GitHub Actions</strong> from the
+    public source of this project, using the workflow at
+    <a href="https://github.com/niyexdroid/vaultify/blob/main/.github/workflows/build.yml"><code>.github/workflows/build.yml</code></a>.
+    No file is ever built on a personal machine and uploaded by hand. The workflow
+    runs <code>flutter analyze</code> and <code>flutter test</code> first and
+    packages nothing if either fails.</p>
+    <p>A release is produced only by pushing a version tag such as
+    <code>v1.0.0</code>, which the workflow turns into the version number carried
+    by the installer and the app. The run that produced each release is visible in
+    the repository's <a href="https://github.com/niyexdroid/vaultify/actions">Actions
+    history</a> to anyone who wants to read it.</p>
+  </div>
+
+  <h2>Who may authorise a signature</h2>
+
+  <div class="card">
+    <p>One person maintains this project and is the only one who can authorise a
+    release or a signature: <strong>Adegbola Adeniyi</strong>
+    (<a href="https://github.com/niyexdroid">@niyexdroid</a>), the repository
+    owner. There are no other maintainers, and no one else has write access.</p>
+    <p>Multi-factor authentication is required on that GitHub account. Signing
+    credentials are held as repository secrets, are never written into the source,
+    and are only reachable by the release workflow running on a version tag.</p>
+  </div>
+
+  <h2>What the signature will mean</h2>
+
+  <div class="card">
+    <p>Under the SignPath Foundation programme, the certificate is issued to
+    <strong>SignPath Foundation</strong> rather than to this project, so that is
+    the publisher name Windows will show. The signature says the file came from
+    this project's automated build of its public source — it is not a claim by
+    SignPath Foundation, Microsoft or anyone else about what the software does.</p>
+    <p>Signing will cover the Windows installer. The macOS and iOS builds stay
+    unsigned until there is an Apple Developer account, and the Android APK is
+    signed with this project's own upload key.</p>
+  </div>
+
+  <h2 id="verify">Verifying a download yourself</h2>
+
+  <div class="card">
+    <p>Each release page lists the <strong>SHA-256 hash</strong> of every file.
+    Comparing the hash of your download against that list proves the file arrived
+    intact and unmodified. In PowerShell:</p>
+    <p><code>Get-FileHash .\Vaultify-1.0.0-Setup.exe -Algorithm SHA256</code></p>
+    <p>On macOS or Linux:</p>
+    <p><code>shasum -a 256 Vaultify-1.0.0.apk</code></p>
+    <p>If the result does not match the hash on the release page, delete the file
+    and download it again from
+    <a href="https://github.com/niyexdroid/vaultify/releases/latest">the releases
+    page</a> only. Do not install it.</p>
+  </div>
+
+  <h2>Reporting a problem</h2>
+
+  <p>If you find a file whose hash does not match, a release you cannot account
+  for, or anything that suggests a signature has been misused, please open an issue
+  in the <a href="https://github.com/niyexdroid/vaultify/issues">GitHub
+  repository</a>.</p>
+
+  <footer>
+    <p><a href="index.html">&larr; Back to downloads</a> ·
+    <a href="privacy.html">Privacy</a> ·
+    Vaultify is free and open source under the Apache License 2.0</p>
+  </footer>
+
+</main>
+</body>
+</html>
