@@ -8,7 +8,8 @@ never leaves the device: no network access, no analytics, no crash reporting.
 
 ## Installing
 
-Downloads: **<https://niyexdroid.github.io/vaultify/>** (or the
+Current release: **v1.0.0**. Downloads:
+**<https://niyexdroid.github.io/vaultify/>** (or the
 [latest release](https://github.com/niyexdroid/vaultify/releases/latest)).
 
 | Platform | File | Status |
@@ -57,8 +58,14 @@ git push origin v1.0.0
 
 It runs `flutter analyze` and `flutter test` first and packages nothing if
 either fails. The tag sets the version, so `v1.0.0` builds version 1.0.0 with
-the Actions run number as the build number. The release is left as a **draft**
-so the download page can be checked before anyone sees it.
+the Actions run number as the build number. The release is left as a
+**draft** so the files can be checked before anyone sees it, so publishing is a
+manual step — until it is done, `releases/latest` has nothing to point at and
+the download page 404s:
+
+```bash
+gh release edit v1.0.0 --draft=false
+```
 
 What comes out:
 
